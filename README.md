@@ -347,6 +347,21 @@ A：不会。App 没有联网上报，所有数据（收藏、历史、搜索记
 
 ## 七、许可
 
-本项目新增的代码部分以 MIT 发布。
+分两部分，规矩不一样。
 
-上游依赖各自的许可：LibreTV 为 MIT，hls.js 为 Apache-2.0，二次分发时请一并保留它们的版权声明。
+### 看剧 App（本项目自己写的部分）
+
+**MIT-0（MIT No Attribution）** —— 只要是人就能用。
+
+随便用、随便改、随便发、随便商用、随便拿去卖，**都不用署名，也不用先问我**。唯一的条件是：出了事别找我，这程序是白送的，不做任何保证。全文见 [LICENSE](LICENSE)。
+
+### LibreTV 本地版（基于上游的分发版）
+
+**严格遵循上游原项目的 MIT 许可**，不适用上面的 MIT-0。
+
+- 上游：[LibreSpark/LibreTV](https://github.com/LibreSpark/LibreTV) v2.24.0，MIT，Copyright (c) 2024 LibreSpark
+- 播放内核：[hls.js](https://github.com/video-dev/hls.js)，Apache-2.0
+
+二次分发时**必须保留**上述版权声明与许可全文，不能删、不能改名、不能换协议。本目录的详细说明见 [libretv/LICENSE](libretv/LICENSE)。
+
+简单说：`LICENSE` 管 App，`libretv/LICENSE` 管网页版，两者互不覆盖。

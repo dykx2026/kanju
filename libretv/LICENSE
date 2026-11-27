@@ -1,0 +1,48 @@
+MIT License
+===========
+
+本目录（libretv/）下的内容属于 **LibreTV 本地版**，是基于上游项目的衍生作品，
+不是本项目原创，因此严格遵循上游的 MIT 许可，不接受根目录 LICENSE（MIT-0）覆盖。
+
+上游项目：LibreSpark/LibreTV
+          https://github.com/LibreSpark/LibreTV
+          基线版本 v2.24.0
+上游许可：MIT License
+上游版权：Copyright (c) 2024 LibreSpark
+
+本项目相对于上游的改动（详见根目录 README「来源声明」）：
+
+  1. 新增 HLS 分片并发下载（源站单连接限速 110~140 KB/s，改为多连接并行）
+  2. 新增分片缓冲：预取池提前拉取后续 10 片 + 磁盘缓存 + 内存缓存上限
+  3. 扩充采集源，并新增按分类名归一的自定义源管理
+  4. 移除内置片源，改为用户在 README 中按清单手动配置
+  5. 以 zip 分发包形式提供，附启动脚本，仅监听 127.0.0.1
+
+上述改动部分同样以 MIT 许可发布，与上游保持一致。
+
+此外，本目录所用播放内核 hls.js（https://github.com/video-dev/hls.js）
+遵循 Apache License 2.0，二次分发时须一并保留其版权与许可声明。
+
+---------------------------------------------------------------------------
+
+MIT License full text:
+
+Copyright (c) 2024 LibreSpark
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

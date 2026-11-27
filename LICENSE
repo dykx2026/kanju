@@ -1,0 +1,43 @@
+MIT No Attribution (MIT-0)
+==========================
+
+中文说明（以本段以下面英文正文为准）：
+
+  只要是人就能用。
+  随便用、随便改、随便发、随便商用、随便拿去卖，都不用署名，也不用先问我。
+  唯一的条件是：出了事别找我。这个程序是白送的，好不好用、合不合法、会不会
+  把你手机搞坏，我都不做任何保证，你自己担着。
+
+This project is released under the MIT No Attribution license (MIT-0),
+which is the most permissive OSI-approved license: no attribution required.
+
+Copyright 2026 dykx2026
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+---------------------------------------------------------------------------
+适用范围
+
+本 LICENSE 仅适用于本仓库中由本项目自行编写的部分，即：
+
+  - 看剧 App 的全部代码（Java 源码、assets/index.html、构建脚本）
+  - HLS 并发预取代理（hls_accel.js）中本项目新增的部分
+  - 文档、配置、启动脚本
+
+不适用于下列上游项目，它们各自遵循原有许可，二次分发时必须保留其版权声明：
+
+  - LibreTV    https://github.com/LibreSpark/LibreTV       MIT License
+               见 libretv/LICENSE
+  - hls.js     https://github.com/video-dev/hls.js         Apache License 2.0
