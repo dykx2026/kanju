@@ -4,10 +4,10 @@
 
 | | 是什么 | 放在哪 |
 |---|---|---|
-| **看剧 App** | 安卓手机应用，装机即用，自己带片源管理、投屏、离线下载 | `apk/kanju-5.3.0.apk` |
+| **看剧 App** | 安卓手机应用，装机即用，自己带片源管理、投屏、离线下载 | `apk/kanju-5.3.1.apk` |
 | **LibreTV 本地版** | 电脑上跑的网页版观影服务，浏览器访问 | `libretv/LibreTV-local-20261127.zip` |
 
-**两个包都不带播放源**，需要你自己填。播放源地址在本文档最后一节的清单里，复制粘贴即可。
+**两个包都不带播放源**，需要你自己填。播放源地址在本文档「三、播放源」一节，开头有 7 条**推荐使用**，复制粘贴即可。
 
 ---
 
@@ -43,7 +43,7 @@
 
 ### 装
 
-1. 把 `apk/kanju-5.3.0.apk` 拷到手机（数据线、QQ、微信、网盘都行）
+1. 把 `apk/kanju-5.3.1.apk` 拷到手机（数据线、QQ、微信、网盘都行）
 2. 点开它，系统会提示「未知来源」，允许一次
 3. 桌面上出现「看剧」图标
 
@@ -206,6 +206,25 @@ https://caiji.moduapi.cc
 | **LibreTV**（网页版） | 设置 → 源管理 → 点播源 → 添加 API，**只填域名** | `https://caiji.moduapi.cc` |
 
 > App 里只填域名也会自动补全成 `/api.php/provide/vod`，不用记后缀。
+
+### 推荐使用
+
+下面这 7 个是**作者长期在用、也曾经内置于 App 里的那几个**。不想挑就直接抄这一组，覆盖面和速度都够用。
+
+| 名称 | 接口地址 |
+|---|---|
+| 魔都 | `https://caiji.moduapi.cc/api.php/provide/vod` |
+| 非凡 | `https://api.ffzyapi.com/api.php/provide/vod` |
+| 红牛 | `https://www.hongniuzy2.com/api.php/provide/vod` |
+| 百度 | `https://api.apibdzy.com/api.php/provide/vod` |
+| 无尽 | `https://api.wujinapi.com/api.php/provide/vod` |
+| 如意 | `https://bycj.rytvapi.com/api.php/provide/vod` |
+| 蘑菇 | `https://caiji.mgzyapi.com/api.php/provide/vod` |
+
+> 这 7 条是 **2026-11-27 实测全部可用**的（列表 20 条/页、分类可切换、播放地址能取到）。
+> 曾经内置在 App 里，现在移到了这份文档——**包不带源，原因见文首**。
+
+下面两份表是更大范围的探测结果，想多配几条时从里面挑。
 
 ### 实测可用（2026-11-27）
 
