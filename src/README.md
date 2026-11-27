@@ -81,6 +81,16 @@ src/
 | `Device.java` | 设备信息（型号、屏幕、WebView 版本），下载页展示用 |
 | `Log.java` | 日志。写文件 + 内存环形缓冲，供 `/api/log` 读取 |
 
+## 调试能力：只有一个无障碍服务，没有 ADB
+
+源码里**只有一个**跟调试相关的东西：`KxAccessibility.java`，在系统里显示为「看剧 · 调试辅助」。
+
+它不是一个服务，是**一个**服务（`AccessibilityService`），配合 `MainActivity` / `DomDump` 把 WebView 里的界面导出成「文本 + 坐标 + 可点击」，也能按坐标点击、按方向滚动。对应四个只监听 `127.0.0.1` 的接口：`/api/a11y/state|dump|tap|scroll`。
+
+刻意只注册一个：MagicOS 11（荣耀）限制单个第三方 App 只能注册 1 项无障碍服务，拆成多个在荣耀上会静默消失，用户连开关都看不到。
+
+**没有 ADB 控制能力**。源码里不调用 `Runtime.exec` / `ProcessBuilder`，也不读 `ADB_ENABLED`。投屏、下载、缓存全在 App 进程内完成，不依赖电脑。所以对外只声明无障碍这一项，不要写成「无障碍 + ADB」。
+
 ## 一处说明
 
 `assets/` 里原本有个 `loading.jpg`（播放加载页的背景图），已经从源码中移除——那是作者个人的图片，不适合随开源包分发。`index.html` 里已经不再引用它，**不影响构建**。加载页现在是纯色 + 转圈 + 「正在加载…」。

@@ -46,20 +46,20 @@ public class Sources {
      */
     public static final List<Src> ALL = new java.util.concurrent.CopyOnWriteArrayList<Src>();
     static {
-        ALL.add(new Src("modu",  "魔都", "https://caiji.moduapi.cc/api.php/provide/vod",        "https://caiji.moduapi.cc/"));
-        ALL.add(new Src("ffzy",  "非凡", "https://api.ffzyapi.com/api.php/provide/vod",         "https://api.ffzyapi.com/"));
-        ALL.add(new Src("hn",    "红牛", "https://www.hongniuzy2.com/api.php/provide/vod",      "https://www.hongniuzy2.com/"));
-        ALL.add(new Src("bdzy",  "百度", "https://api.apibdzy.com/api.php/provide/vod",         "https://api.apibdzy.com/"));
-        ALL.add(new Src("wujin", "无尽", "https://api.wujinapi.com/api.php/provide/vod",        "https://api.wujinapi.com/"));
+        // [发布版] 内置源已移除，见 README「三、播放源」
+        // [发布版] 内置源已移除，见 README「三、播放源」
+        // [发布版] 内置源已移除，见 README「三、播放源」
+        // [发布版] 内置源已移除，见 README「三、播放源」
+        // [发布版] 内置源已移除，见 README「三、播放源」
         // 「最大」(zuid) 于 2026-11-27 移除：实测它**忽略 wd 参数**，搜「狄仁杰」返回
         // 「百变智多星」「金牌调解」这类完全无关的东西，把搜索结果搅成一锅粥
         // （用户原话「搜狄仁杰出来一堆不相关的东西」）。分类参数 t 它也基本不认。
         // 实测对比：其余 7 个源对同一关键词的命中率都是 100%，只有它 0%。
         // 2026-11-27 复测新增：如意、蘑菇。原先 6 个源里只有魔都和非凡片源较全，
         // 加上这两个，同一部片的可选线路明显变多（「扩大来源」这条要求）。
-        ALL.add(new Src("ruyi",  "如意", "https://bycj.rytvapi.com/api.php/provide/vod",         "https://bycj.rytvapi.com/"));
-        ALL.add(new Src("mogu",  "蘑菇", "https://caiji.mgzyapi.com/api.php/provide/vod",        "https://caiji.mgzyapi.com/"));
-        BUILTIN = ALL.size();
+        // [发布版] 内置源已移除，见 README「三、播放源」
+        // [发布版] 内置源已移除，见 README「三、播放源」
+        BUILTIN = 0;   // 发布版：不内置任何源，由用户在使用说明里自取
     }
 
     /** 内置源个数。自定义源都排在它后面，key 以 "u" 开头。 */
