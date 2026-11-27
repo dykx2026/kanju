@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="a11y_desc">「看剧」的界面是网页（WebView），常规的界面检查工具看不到里面任何一个按钮。打开这个服务后，App 可以把当前屏幕上的元素结构导出成文字，方便维护者定位问题、做自动化回归测试。它不会读取你的输入内容，不会上传任何数据，退出 App 后不产生任何影响。普通使用完全不需要打开它。</string>
+    <string name="a11y_sum">给维护者调试界面用，日常使用不需要开启</string>
+</resources>

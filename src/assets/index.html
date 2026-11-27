@@ -1,0 +1,2490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#171A21">
+<title>看剧</title>
+<style>
+:root{
+  --bg:#171A21; --surf:#1B2838; --surf2:#22354a; --line:#2A475E;
+  --acc:#66C0F4; --txt:#C7D5E0; --ttl:#FFFFFF; --mut:#8F98A0;
+  --grad:linear-gradient(135deg,#2A475E 0%,#1B2838 100%);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --sat:env(safe-area-inset-top,0px);
+  --sab:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
+  font-family:"HarmonyOS Sans SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  -webkit-user-select:none;user-select:none}
+img{display:block;border:0;background:#22354a}
+input{font-family:inherit}
+.hw{transform:translate3d(0,0,0);backface-visibility:hidden;will-change:transform}
+
+/* ---------- 骨架 / 动画基元 ---------- */
+@keyframes fadeUp{from{opacity:0;transform:translate3d(0,14px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes shimmer{0%{background-position:-360px 0}100%{background-position:360px 0}}
+.skel{background:linear-gradient(90deg,#1B2838 0%,#22354a 40%,#1B2838 80%);
+  background-size:360px 100%;animation:shimmer 1.1s linear infinite}
+
+/* ---------- 顶栏 ---------- */
+#top{position:fixed;left:0;right:0;top:0;z-index:30;padding:calc(var(--sat) + 10px) 14px 10px;
+  background:linear-gradient(180deg,rgba(23,26,33,.98),rgba(23,26,33,.92) 70%,rgba(23,26,33,0));
+  backdrop-filter:blur(12px);transition:transform .34s var(--ease)}
+#top.hide{transform:translate3d(0,-100%,0)}
+.brand{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+.logo{width:26px;height:26px;border-radius:8px;background:var(--grad);
+  border:1px solid rgba(102,192,244,.5);display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;color:var(--acc);box-shadow:0 0 14px rgba(102,192,244,.22)}
+.brand h1{font-size:17px;color:var(--ttl);font-weight:600;letter-spacing:.5px}
+.brand .sp{flex:1}
+.icobtn{width:32px;height:32px;border-radius:10px;background:rgba(102,192,244,.1);
+  border:1px solid rgba(102,192,244,.22);display:flex;align-items:center;justify-content:center;
+  color:var(--acc);font-size:15px;transition:transform .3s var(--spring),background .2s}
+.icobtn:active{transform:scale(.86);background:rgba(102,192,244,.24)}
+
+/* 搜索框：Q弹聚焦 */
+#sbox{position:relative}
+#sinput{width:100%;height:40px;border-radius:12px;border:1px solid #2A475E;background:#1B2838;
+  color:var(--ttl);font-size:14px;padding:0 40px 0 38px;outline:none;
+  transition:transform .34s var(--spring),border-color .22s,box-shadow .22s}
+#sinput::placeholder{color:#5d6b76}
+#sinput:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(102,192,244,.14);transform:scale(1.015)}
+.sico{position:absolute;left:13px;top:11px;color:#6b7b87;font-size:15px;pointer-events:none}
+.sclr{position:absolute;right:8px;top:8px;width:24px;height:24px;border-radius:50%;
+  display:none;align-items:center;justify-content:center;color:var(--mut);font-size:13px;background:#22354a}
+#sinput:not(:placeholder-shown)~.sclr{display:flex}
+
+/* 联想 + 历史下拉 */
+#sdrop{position:absolute;left:0;right:0;top:46px;background:#1B2838;border:1px solid #2A475E;
+  border-radius:12px;overflow:hidden;box-shadow:0 14px 34px rgba(0,0,0,.6);display:none;
+  transform-origin:top center;animation:dropIn .26s var(--spring)}
+@keyframes dropIn{from{opacity:0;transform:scaleY(.86) translate3d(0,-6px,0)}to{opacity:1;transform:none}}
+#sdrop.show{display:block}
+.srow{display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13.5px;color:var(--txt);
+  border-bottom:1px solid rgba(42,71,94,.5);transition:background .15s}
+.srow:last-child{border-bottom:0}
+.srow:active{background:rgba(102,192,244,.12)}
+.srow .k{color:#6b7b87;font-size:12px;flex-shrink:0}
+.srow .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow .del,.hrow .del{width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;
+  color:#6b7b87;background:rgba(255,255,255,.05);transition:background .15s,color .15s}
+.srow .del:active,.hrow .del:active{background:rgba(255,138,128,.24);color:#FF8A80}
+.hrow{position:relative}
+.hhead{display:flex;align-items:center;justify-content:space-between;padding:6px 14px 10px}
+.hhead small{color:#8F98A0;font-size:12px}
+.clr{font-size:12.5px;color:#66C0F4;padding:7px 13px;border-radius:9px;
+  background:rgba(102,192,244,.13);transition:background .15s,color .15s}
+.clr.warn{color:#FF8A80;background:rgba(255,138,128,.18)}
+
+/* ---------- 分类横滑 ---------- */
+#cats{position:fixed;left:0;right:0;z-index:29;padding:0 14px 9px;overflow-x:auto;
+  overflow-y:hidden;white-space:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+  background:linear-gradient(180deg,rgba(23,26,33,.96),rgba(23,26,33,.8) 80%,rgba(23,26,33,0));
+  transition:transform .34s var(--ease)}
+#cats::-webkit-scrollbar{display:none}
+#cats.hide{transform:translate3d(0,-140%,0)}
+.chip{display:inline-block;padding:7px 15px;margin-right:8px;border-radius:20px;font-size:13px;
+  color:var(--mut);background:rgba(42,71,94,.45);border:1px solid transparent;
+  transition:transform .3s var(--spring),background .2s,color .2s,border-color .2s}
+.chip:active{transform:scale(.92)}
+.chip.on{color:#0f1620;background:var(--acc);border-color:var(--acc);font-weight:600;
+  box-shadow:0 3px 14px rgba(102,192,244,.34);transform:scale(1.04)}
+
+/* ---------- 卡片墙 ---------- */
+#scroller{position:absolute;left:0;right:0;top:0;bottom:0;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior:contain}
+#scroller::-webkit-scrollbar{display:none}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 14px}
+.card{position:relative;border-radius:12px;overflow:hidden;background:#1B2838;
+  transition:transform .34s var(--spring),box-shadow .3s;will-change:transform;
+  animation:fadeUp .42s var(--ease) both}
+.card:active{transform:scale(.945);box-shadow:0 0 0 2px var(--acc)}
+.card .pic{width:100%;aspect-ratio:2/3;object-fit:cover;background:#22354a}
+.card .mask{position:absolute;left:0;right:0;bottom:0;padding:22px 8px 7px;
+  background:linear-gradient(180deg,transparent,rgba(10,14,20,.94) 62%)}
+.card .nm{font-size:12px;color:#fff;line-height:1.32;font-weight:500;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .rm{font-size:10.5px;color:var(--acc);margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .badge{position:absolute;right:6px;top:6px;font-size:10px;padding:2px 6px;border-radius:6px;
+  background:rgba(10,14,20,.82);color:var(--acc);border:1px solid rgba(102,192,244,.3)}
+.card .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:#2A475E;font-size:26px;font-weight:700}
+
+/* ---------- 通用页 ---------- */
+.page{position:fixed;inset:0;background:var(--bg);z-index:40;display:none;overflow-y:auto;
+  -webkit-overflow-scrolling:touch}
+.page.show{display:block}
+.page.in{animation:pageIn .32s var(--ease)}
+@keyframes pageIn{from{opacity:0;transform:translate3d(0,20px,0)}to{opacity:1;transform:none}}
+
+/* ---------- 详情页 ---------- */
+#dHero{position:relative;height:250px;overflow:hidden}
+#dHero .bg{position:absolute;inset:-20px;background-size:cover;background-position:center;
+  filter:blur(22px) brightness(.42);transform:scale(1.12)}
+#dHero .fg{position:relative;display:flex;gap:13px;padding:calc(var(--sat) + 46px) 16px 0}
+#dHero .fg img{width:104px;height:156px;border-radius:10px;object-fit:cover;
+  box-shadow:0 10px 26px rgba(0,0,0,.6);border:1px solid rgba(102,192,244,.2)}
+#dHero .meta{flex:1;min-width:0;padding-top:4px}
+#dHero h2{font-size:19px;color:#fff;line-height:1.28;font-weight:600;margin-bottom:7px}
+#dHero .tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+#dHero .tags span{font-size:11px;padding:2px 8px;border-radius:5px;
+  background:rgba(102,192,244,.14);color:var(--acc);border:1px solid rgba(102,192,244,.22)}
+#dHero .desc{font-size:12px;color:var(--mut);line-height:1.55;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#dBody{padding:16px}
+.secT{font-size:14px;color:#fff;font-weight:600;margin:0 0 10px;display:flex;align-items:center;gap:7px}
+.secT i{width:3px;height:14px;border-radius:2px;background:var(--acc);display:inline-block}
+.btnrow{display:flex;gap:10px;margin-bottom:18px}
+.bigbtn{flex:1;height:46px;border-radius:12px;border:0;font-size:15px;font-weight:600;
+  color:#0f1620;background:var(--acc);transition:transform .3s var(--spring),filter .2s;
+  box-shadow:0 6px 20px rgba(102,192,244,.3)}
+.bigbtn:active{transform:scale(.955);filter:brightness(1.1)}
+.bigbtn.ghost{background:rgba(102,192,244,.12);color:var(--acc);
+  border:1px solid rgba(102,192,244,.34);box-shadow:none}
+.lines{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.lchip{padding:7px 13px;border-radius:9px;font-size:12.5px;color:var(--txt);
+  background:#1B2838;border:1px solid #2A475E;transition:transform .3s var(--spring),all .2s}
+.lchip:active{transform:scale(.93)}
+.lchip.on{background:rgba(102,192,244,.16);border-color:var(--acc);color:var(--acc);font-weight:600}
+.epgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.ep{height:38px;border-radius:9px;background:#1B2838;border:1px solid #2A475E;
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--txt);
+  overflow:hidden;padding:0 4px;transition:transform .3s var(--spring),background .18s}
+.ep:active{transform:scale(.9)}
+.ep.cur{background:var(--acc);color:#0f1620;font-weight:700;border-color:var(--acc)}
+
+/* ---------- 播放页 ---------- */
+#pv{position:fixed;inset:0;z-index:100;background:#000;display:none}
+#pv.show{display:block}
+#pv .wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+#vid{width:100%;height:100%;object-fit:contain;background:#000}
+#pTop{position:absolute;left:0;right:0;top:0;z-index:12;padding:calc(var(--sat) + 8px) 12px 26px;
+  display:flex;align-items:center;gap:11px;
+  background:linear-gradient(180deg,rgba(0,0,0,.84),transparent);
+  transition:transform .32s var(--ease),opacity .32s}
+#pTop.away{transform:translate3d(0,-100%,0);opacity:0;pointer-events:none}
+#pTop .bk{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.13);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;
+  transition:transform .3s var(--spring)}
+#pTop .bk:active{transform:scale(.85)}
+#pTop .ti{flex:1;min-width:0}
+#pTop .ti b{display:block;font-size:14px;color:#fff;font-weight:600;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pTop .ti small{font-size:11px;color:rgba(255,255,255,.6)}
+
+#pCtl{position:absolute;left:0;right:0;bottom:0;z-index:12;padding:30px 14px calc(var(--sab) + 12px);
+  background:linear-gradient(0deg,rgba(0,0,0,.9),rgba(0,0,0,.55) 55%,transparent);
+  transition:transform .32s var(--ease),opacity .32s}
+#pCtl.away{transform:translate3d(0,100%,0);opacity:0;pointer-events:none}
+#bar{position:relative;height:22px;display:flex;align-items:center;margin-bottom:6px}
+#bar .track{position:absolute;left:0;right:0;height:4px;border-radius:2px;background:rgba(255,255,255,.22)}
+#bar .fill{position:absolute;left:0;height:4px;border-radius:2px;background:var(--acc);
+  box-shadow:0 0 10px rgba(102,192,244,.7)}
+#bar .knob{position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;
+  box-shadow:0 0 8px rgba(102,192,244,.9);margin-left:-6px;
+  transition:transform .26s var(--spring)}
+#bar.drag .knob{transform:scale(1.5)}
+#ptime{display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.66);
+  margin-bottom:9px;font-variant-numeric:tabular-nums}
+#pbtns{display:flex;align-items:center;gap:6px}
+.pbtn{height:36px;min-width:36px;padding:0 9px;border-radius:10px;background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.14);color:#fff;font-size:12.5px;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  transition:transform .3s var(--spring),background .18s}
+.pbtn:active{transform:scale(.88);background:rgba(102,192,244,.3)}
+.pbtn.play{width:46px;height:46px;border-radius:50%;background:var(--acc);color:#0f1620;
+  border-color:var(--acc);font-size:18px;box-shadow:0 4px 16px rgba(102,192,244,.4)}
+.pbtn .lbl{font-weight:600}
+#pSpacer{flex:1}
+
+/* 中央手势层 / 提示 */
+#pTaps{position:absolute;inset:0;z-index:8}
+#pTip{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);z-index:20;
+  background:rgba(0,0,0,.78);color:#fff;font-size:13px;padding:9px 17px;border-radius:11px;
+  opacity:0;pointer-events:none;transition:opacity .3s,transform .3s var(--spring)}
+#pTip.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+/* 加载页：用户给的图 + 下面一个小转圈。图按比例缩到最长 74%，圆角，带一点投影 */
+#spin{position:absolute;left:0;right:0;top:0;bottom:0;z-index:9;display:none;
+  align-items:center;justify-content:center;flex-direction:column;gap:16px;
+  background:radial-gradient(120% 90% at 50% 45%,#10161d 0%,#0A0E13 70%);}
+#spin.on{display:flex}
+#spin img{max-width:74%;max-height:62%;border-radius:14px;display:block;
+  box-shadow:0 18px 46px rgba(0,0,0,.66),0 0 0 1px rgba(102,192,244,.18)}
+#spin .spinring{width:26px;height:26px;border-radius:50%;
+  border:2.5px solid rgba(102,192,244,.2);border-top-color:var(--acc);
+  animation:sp .8s linear infinite}
+#spin .lzt{font-size:12px;color:#8F98A0;letter-spacing:.06em}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* 选集抽屉 */
+#epDrawer{position:fixed;left:0;right:0;bottom:0;z-index:120;max-height:64vh;
+  background:#1B2838;border-radius:18px 18px 0 0;border-top:1px solid #2A475E;
+  transform:translate3d(0,110%,0);transition:transform .38s var(--spring);
+  display:flex;flex-direction:column;box-shadow:0 -12px 40px rgba(0,0,0,.7)}
+#epDrawer.on{transform:translate3d(0,0,0)}
+#epDrawer .hd{padding:15px 16px 11px;display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid rgba(42,71,94,.7)}
+#epDrawer .hd b{font-size:15px;color:#fff;flex:1}
+#epDrawer .hd .x{color:var(--mut);font-size:16px;padding:4px 8px}
+#epDrawer .bd{overflow-y:auto;padding:14px 16px calc(var(--sab) + 20px);-webkit-overflow-scrolling:touch}
+#epMask{position:fixed;inset:0;z-index:115;background:rgba(0,0,0,.6);display:none;
+  animation:fadeIn .24s}
+#epMask.on{display:block}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* ---------- 底部 tab ---------- */
+#tab{position:fixed;left:0;right:0;bottom:0;z-index:31;display:flex;
+  padding:6px 0 calc(var(--sab) + 6px);background:rgba(23,26,33,.97);
+  border-top:1px solid rgba(42,71,94,.8);backdrop-filter:blur(12px)}
+#tab.hide{transform:translate3d(0,120%,0)}
+.tb{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  color:#5d6b76;font-size:10.5px;padding:5px 0;transition:transform .3s var(--spring),color .2s}
+.tb:active{transform:scale(.88)}
+.tb.on{color:var(--acc)}
+.tb i{font-size:17px;font-style:normal;line-height:1}
+
+/* ---------- 空 / 提示 ---------- */
+.empty{text-align:center;padding:56px 24px;color:#6f7d89;font-size:13px;line-height:1.8}
+.empty .big{font-size:34px;margin-bottom:12px;opacity:.8}
+.loadmore{text-align:center;padding:18px;font-size:12px;color:#6f7d89}
+.fab{position:fixed;right:16px;bottom:calc(var(--sab) + 66px);z-index:32;width:44px;height:44px;
+  border-radius:14px;background:var(--grad);border:1px solid rgba(102,192,244,.4);
+  color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:18px;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);transition:transform .32s var(--spring);display:none}
+.fab:active{transform:scale(.86) rotate(-8deg)}
+.fab.show{display:flex}
+.hlist{display:flex;flex-direction:column;gap:1px}
+.hrow{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#1B2838;
+  transition:transform .3s var(--spring),background .18s;border-radius:10px}
+.hrow:active{transform:scale(.985);background:#22354a}
+.hrow img{width:52px;height:74px;border-radius:7px;object-fit:cover;flex-shrink:0;background:#22354a}
+.hrow .info{flex:1;min-width:0}
+.hrow .info b{display:block;font-size:13.5px;color:#fff;font-weight:500;margin-bottom:4px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrow .info small{font-size:11px;color:var(--mut);display:block;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrow .pg{height:3px;border-radius:2px;background:#2A475E;margin-top:7px;overflow:hidden}
+.hrow .pg i{display:block;height:100%;background:var(--acc);border-radius:2px}
+
+/* ================= 排行榜 / 随便看 ================= */
+.rkBar{display:flex;gap:8px;overflow-x:auto;padding:12px 12px 6px;scrollbar-width:none}
+.rkBar::-webkit-scrollbar{display:none}
+.rkChip{flex:0 0 auto;padding:7px 13px;border-radius:16px;background:#1B2838;color:#8F98A0;
+  font-size:12.5px;white-space:nowrap;border:1px solid #2A475E;transition:all .18s cubic-bezier(.34,1.4,.64,1)}
+.rkChip.on{background:linear-gradient(135deg,#66C0F4,#3E8DB8);color:#0B1220;font-weight:700;
+  border-color:transparent;transform:translateY(-1px);box-shadow:0 4px 14px rgba(102,192,244,.35)}
+.rkRow{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:12px;
+  transition:background .15s,transform .15s}
+.rkRow:active{background:#1B2838;transform:scale(.985)}
+.rkNo{flex:0 0 26px;text-align:center;font-size:15px;font-weight:800;color:#5D6B7A;font-variant-numeric:tabular-nums}
+.rkNo.top1{color:#FFD166}.rkNo.top2{color:#D7E1EA}.rkNo.top3{color:#E0A070}
+.rkPic{flex:0 0 54px;height:76px;border-radius:9px;background:#22354a;object-fit:cover}
+.rkInf{flex:1;min-width:0}
+.rkInf b{display:block;color:#EAF2F8;font-size:14px;line-height:1.35;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rkInf small{color:#8F98A0;font-size:11.5px}
+.rkSc{flex:0 0 auto;font-size:15px;font-weight:800;color:#FFD166;font-variant-numeric:tabular-nums}
+.rkEmpty{padding:60px 24px;text-align:center;color:#6E7C8A;font-size:13.5px;line-height:1.9}
+
+/* 随机抽卡 */
+.rndWrap{padding:14px 14px 26px}
+.rndCard{background:linear-gradient(160deg,#1B2838,#151C26);border:1px solid #26374A;
+  border-radius:16px;padding:14px}
+.rndLbl{color:#8F98A0;font-size:12px;margin:2px 0 8px}
+.seg{display:flex;background:#0F151D;border-radius:11px;padding:3px;gap:3px}
+.seg>div{flex:1;text-align:center;padding:9px 0;border-radius:9px;color:#8F98A0;font-size:13px;
+  transition:all .18s cubic-bezier(.34,1.4,.64,1)}
+.seg>div.on{background:#2A475E;color:#EAF2F8;font-weight:700;transform:scale(1.02)}
+.rndRow{display:flex;align-items:center;gap:10px;margin-top:14px}
+#rndMin{width:74px;background:#0F151D;border:1px solid #2A475E;border-radius:10px;color:#EAF2F8;
+  font-size:15px;text-align:center;padding:8px 0;outline:none;font-variant-numeric:tabular-nums}
+#rndMin.bad{border-color:#E05A5A;animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.rndHint{font-size:11.5px;color:#8F98A0;line-height:1.5}
+.rndHint.bad{color:#FF8A80}
+.sw{width:46px;height:26px;border-radius:14px;background:#2A3B4E;position:relative;
+  transition:background .22s;flex:0 0 46px;margin-left:auto}
+.sw.on{background:#66C0F4}
+.sw i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#8F98A0;
+  transition:all .22s cubic-bezier(.34,1.4,.64,1)}
+.sw.on i{left:23px;background:#0B1220}
+#rndGo{width:100%;margin-top:16px;padding:15px 0;border:none;border-radius:13px;
+  background:linear-gradient(135deg,#66C0F4,#3E8DB8);color:#08111A;font-size:16px;font-weight:800;
+  letter-spacing:1px;transition:transform .14s cubic-bezier(.34,1.4,.64,1)}
+#rndGo:active{transform:scale(.97)}
+#rndGo:disabled{opacity:.55}
+.rndStage{margin-top:16px;min-height:150px;display:flex;align-items:center;justify-content:center}
+.rndPick{text-align:center;animation:pop .45s cubic-bezier(.34,1.5,.64,1)}
+@keyframes pop{0%{transform:scale(.82);opacity:0}100%{transform:scale(1);opacity:1}}
+.rndPick img{width:104px;height:148px;border-radius:12px;background:#22354a;object-fit:cover;
+  box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.rndPick b{display:block;margin-top:11px;color:#EAF2F8;font-size:15.5px}
+.rndPick small{color:#8F98A0;font-size:12px}
+.rndRoll img{filter:blur(2.5px) brightness(.8);transform:scale(.94)}
+.rndRoll b{opacity:.5}
+.rndSee{margin-top:14px;width:100%;padding:13px 0;border-radius:12px;border:1px solid #2A475E;
+  background:transparent;color:#66C0F4;font-size:14px;font-weight:700}
+
+/* ================= 独立页层（榜单 / 随便看） ================= */
+.pgHd{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:6px;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 14px 12px;
+  background:rgba(23,26,33,.97);backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(42,71,94,.7)}
+.pgHd b{font-size:16.5px;color:#fff;letter-spacing:.5px}
+.pgBack{font-size:26px;color:#8F98A0;line-height:.85;padding:0 6px 5px 0}
+.pgBack:active{color:#66C0F4}
+.pgBd{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 28px)}
+/* ---------- 设置页 / 源管理 ---------- */
+.setCard{margin:12px;background:linear-gradient(160deg,#1B2838,#151C26);border:1px solid #26374A;
+  border-radius:16px;padding:14px}
+.setRow{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid rgba(42,71,94,.55)}
+.setRow:last-of-type{border-bottom:none}
+.setRow b{display:block;font-size:13px;color:#EAF2F8;font-weight:600;line-height:1.3}
+.setRow small{display:block;font-size:10.5px;color:#6f7d89;margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.setRow .tag{font-size:10px;color:#8F98A0;border:1px solid #2A475E;border-radius:6px;
+  padding:2px 6px;flex-shrink:0}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.ok{background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,.55)}
+.dot.bad{background:#ff6b6b}
+.setInp{width:100%;height:40px;margin-top:8px;border-radius:11px;background:#0F151D;
+  border:1px solid #26374A;color:#EAF2F8;font-size:13px;padding:0 12px;box-sizing:border-box}
+.setInp::placeholder{color:#5d6b76}
+.setInp:focus{outline:none;border-color:#66C0F4}
+#pgToast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(10px);
+  background:rgba(10,16,24,.94);color:#EAF2F8;font-size:13px;padding:10px 18px;border-radius:12px;
+  z-index:9999;opacity:0;pointer-events:none;transition:all .26s;max-width:80vw;text-align:center}
+#pgToast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.rkBar{display:flex;gap:8px;overflow-x:auto;padding:12px 12px 8px;scrollbar-width:none}
+.rkBar::-webkit-scrollbar{display:none}
+.rkChip{flex:0 0 auto;padding:7px 13px;border-radius:16px;background:#1B2838;color:#8F98A0;
+  font-size:12.5px;white-space:nowrap;border:1px solid #2A475E;
+  transition:all .2s cubic-bezier(.34,1.4,.64,1)}
+.rkChip.on{background:linear-gradient(135deg,#66C0F4,#3E8DB8);color:#0B1220;font-weight:700;
+  border-color:transparent;transform:translateY(-1px);box-shadow:0 4px 14px rgba(102,192,244,.35)}
+.rkRow{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:12px;
+  transition:background .15s,transform .15s}
+.rkRow:active{background:#1B2838;transform:scale(.985)}
+.rkNo{flex:0 0 26px;text-align:center;font-size:15px;font-weight:800;color:#5D6B7A;
+  font-variant-numeric:tabular-nums}
+.rkNo.top1{color:#FFD166}.rkNo.top2{color:#D7E1EA}.rkNo.top3{color:#E0A070}
+.rkPic{flex:0 0 54px;height:76px;border-radius:9px;background:#22354a;object-fit:cover}
+.rkInf{flex:1;min-width:0}
+.rkInf b{display:block;color:#EAF2F8;font-size:14px;line-height:1.35;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rkInf small{color:#8F98A0;font-size:11.5px}
+.rkSc{flex:0 0 auto;font-size:15px;font-weight:800;color:#FFD166;font-variant-numeric:tabular-nums}
+.rkEmpty{padding:60px 24px;text-align:center;color:#6E7C8A;font-size:13.5px;line-height:1.9}
+
+.rndWrap{padding:14px 14px 26px}
+.rndCard{background:linear-gradient(160deg,#1B2838,#151C26);border:1px solid #26374A;
+  border-radius:16px;padding:14px}
+.rndLbl{color:#8F98A0;font-size:12px;margin:2px 0 8px}
+.seg{display:flex;background:#0F151D;border-radius:11px;padding:3px;gap:3px}
+.seg>div{flex:1;text-align:center;padding:9px 0;border-radius:9px;color:#8F98A0;font-size:13px;
+  transition:all .2s cubic-bezier(.34,1.4,.64,1)}
+.seg>div.on{background:#2A475E;color:#EAF2F8;font-weight:700;transform:scale(1.02)}
+.rndRow{display:flex;align-items:center;gap:10px;margin-top:14px}
+#rndMin{width:78px;background:#0F151D;border:1px solid #2A475E;border-radius:10px;color:#EAF2F8;
+  font-size:16px;text-align:center;padding:8px 0;outline:none;font-variant-numeric:tabular-nums}
+#rndMin.bad{border-color:#E05A5A;animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.rndHint{font-size:11.5px;color:#8F98A0;line-height:1.5}
+.rndHint.bad{color:#FF8A80}
+.sw{width:46px;height:26px;border-radius:14px;background:#2A3B4E;position:relative;
+  transition:background .24s;flex:0 0 46px;margin-left:auto}
+.sw.on{background:#66C0F4}
+.sw i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#8F98A0;
+  transition:all .24s cubic-bezier(.34,1.4,.64,1)}
+.sw.on i{left:23px;background:#0B1220}
+#rndGo{width:100%;margin-top:16px;padding:15px 0;border:none;border-radius:13px;
+  background:linear-gradient(135deg,#66C0F4,#3E8DB8);color:#08111A;font-size:16px;font-weight:800;
+  letter-spacing:1px;transition:transform .14s cubic-bezier(.34,1.4,.64,1)}
+#rndGo:active{transform:scale(.97)}
+#rndGo:disabled{opacity:.55}
+.rndStage{margin-top:16px;min-height:150px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center}
+.rndPick{text-align:center;animation:popIn .45s cubic-bezier(.34,1.5,.64,1)}
+@keyframes popIn{0%{transform:scale(.82);opacity:0}100%{transform:scale(1);opacity:1}}
+.rndPick img{width:104px;height:148px;border-radius:12px;background:#22354a;object-fit:cover;
+  box-shadow:0 12px 30px rgba(0,0,0,.5);margin:0 auto}
+.rndPick b{display:block;margin-top:11px;color:#EAF2F8;font-size:15.5px}
+.rndPick small{color:#8F98A0;font-size:12px}
+.rndRoll img{filter:blur(2.5px) brightness(.8);transform:scale(.94)}
+.rndRoll b{opacity:.55}
+.rndSee{margin-top:14px;width:100%;padding:13px 0;border-radius:12px;border:1px solid #2A475E;
+  background:transparent;color:#66C0F4;font-size:14px;font-weight:700}
+
+/* 搜索框只属于影片库：收藏/历史/下载/榜单/随便看 各有自己的内容，
+   顶着一条「搜了也没反应」的搜索框只会让人误以为能在这儿搜。
+   切换 tab 时给 body 加/去掉 home 类，顶栏高度会变，由 relayoutSoon() 重算。 */
+body:not(.home) #sbox{display:none}
+body:not(.home) #cats{display:none}
+body:not(.home) #btnRefresh{display:none}
+.spin{display:inline-block;width:12px;height:12px;margin-right:7px;vertical-align:-2px;
+  border:2px solid rgba(102,192,244,.28);border-top-color:var(--acc);border-radius:50%;
+  animation:spn .8s linear infinite}
+@keyframes spn{to{transform:rotate(360deg)}}
+#more.busy{color:var(--acc)}
+/* 已抽列表（随便看） */
+.rndSeenBox{margin-top:14px;background:linear-gradient(160deg,#1B2838,#151C26);
+  border:1px solid #26374A;border-radius:16px;padding:12px 12px 6px}
+.rndSeenHd{display:flex;align-items:center;justify-content:space-between;
+  color:#8F98A0;font-size:12px;padding:0 2px 8px}
+.rndClr{color:#66C0F4;font-size:12px;font-weight:700;padding:4px 6px;border-radius:8px}
+.rndClr:active{background:rgba(102,192,244,.14)}
+.rndSeenList{max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.rndSeenRow{display:flex;align-items:baseline;gap:8px;padding:8px 2px;
+  border-top:1px solid rgba(42,71,94,.55);transition:background .15s}
+.rndSeenRow:active{background:rgba(102,192,244,.08)}
+.rndSeenRow b{flex:1;min-width:0;color:#DCE8F2;font-size:13.5px;font-weight:600;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rndSeenRow small{flex:0 0 auto;color:#8F98A0;font-size:11.5px;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body class="home">
+
+<!-- ============ 首页 ============ -->
+<div id="top">
+  <div class="brand">
+    <div class="logo">剧</div>
+    <h1 id="hTitle">影片库</h1>
+    <div class="sp"></div>
+    <div class="icobtn" id="btnSet">⚙</div>
+    <div class="icobtn" id="btnRefresh">↻</div>
+  </div>
+  <div id="sbox">
+    <span class="sico">⌕</span>
+    <input id="sinput" placeholder="搜索片子…" autocomplete="off" autocorrect="off" spellcheck="false">
+    <div class="sclr" id="sclr">✕</div>
+    <div id="sdrop"></div>
+  </div>
+</div>
+<div id="cats"></div>
+<div id="scroller"><div id="pgbox" class="pgbox"></div><div id="grid" class="grid"></div><div id="more" class="loadmore"></div></div>
+<div class="fab" id="fab">↑</div>
+<div id="tab">
+  <div class="tb on" data-t="home"><i>▦</i><span>影片库</span></div>
+  <div class="tb" data-t="fav"><i>★</i><span>收藏</span></div>
+  <div class="tb" data-t="hist"><i>◷</i><span>历史</span></div>
+  <div class="tb" data-t="dl"><i>⬇</i><span>下载</span></div>
+  <div class="tb" data-t="rank"><i>◎</i><span>榜单</span></div>
+  <div class="tb" data-t="rnd"><i>✦</i><span>随便看</span></div>
+</div>
+
+<!-- ============ 排行榜 ============ -->
+<div id="pageRank" class="page">
+  <div class="pgHd"><div class="pgBack" data-close="pageRank">‹</div><b>排行榜</b><div style="flex:1"></div></div>
+  <div class="rkBar" id="rkColls"></div>
+  <div class="pgBd" id="rkBody"></div>
+</div>
+
+<!-- ============ 不知道看什么 ============ -->
+<div id="pageRnd" class="page">
+  <div class="pgHd"><div class="pgBack" data-close="pageRnd">‹</div><b>不知道看什么</b><div style="flex:1"></div></div>
+  <div class="pgBd" id="rndBody"></div>
+</div>
+<!-- ============ 设置 / 片源管理 ============ -->
+<div id="pageSet" class="page">
+  <div class="pgHd"><div class="pgBack" data-close="pageSet">‹</div><b>设置</b><div style="flex:1"></div></div>
+  <div class="pgBd" id="setBody"></div>
+</div>
+<div id="pgToast"></div>
+
+<!-- ============ 详情页 ============ -->
+<div id="detail" class="page">
+  <div id="dHero">
+    <div class="bg" id="dBg"></div>
+    <div class="fg">
+      <img id="dPic" alt="">
+      <div class="meta">
+        <h2 id="dName">—</h2>
+        <div class="tags" id="dTags"></div>
+        <div class="desc" id="dDesc"></div>
+      </div>
+    </div>
+  </div>
+  <div id="dBody">
+    <div class="btnrow">
+      <button class="bigbtn" id="dPlay">▶ 立即播放</button>
+      <button class="bigbtn ghost" id="dFav">★ 收藏</button>
+      <button class="bigbtn ghost" id="dDl" style="flex:0 0 60px">⬇</button>
+    </div>
+    <div class="secT"><i></i>线路</div>
+    <div class="lines" id="dLines"></div>
+    <div class="secT"><i></i><span id="dEpT">选集</span></div>
+    <div class="epgrid" id="dEps"></div>
+  </div>
+</div>
+
+<!-- ============ 播放页 ============ -->
+<div id="pv">
+  <div class="wrap"><video id="vid" playsinline webkit-playsinline></video></div>
+  <div id="spin"><img src="loading.jpg" alt=""><div class="spinring"></div>
+    <div class="lzt">正在加载…</div></div>
+  <div id="pTaps"></div>
+  <div id="pTop">
+    <div class="bk" id="pBack">‹</div>
+    <div class="ti"><b id="pName">—</b><small id="pEp">—</small></div>
+  </div>
+  <div id="pTip"></div>
+  <div id="pCtl">
+    <div id="bar"><div class="track"></div><div class="fill" id="barFill" style="width:0"></div><div class="knob" id="barKnob" style="left:0"></div></div>
+    <div id="ptime"><span id="tCur">00:00</span><span id="tDur">00:00</span></div>
+    <div id="pbtns">
+      <div class="pbtn" id="bPrev">‹‹</div>
+      <div class="pbtn play" id="bPlay">▶</div>
+      <div class="pbtn" id="bNext">››</div>
+      <div id="pSpacer"></div>
+      <div class="pbtn" id="bRate"><span class="lbl">1.0×</span></div>
+      <div class="pbtn" id="bCast">投屏</div>
+      <div class="pbtn" id="bEps">选集</div>
+    </div>
+  </div>
+</div>
+
+<div id="epMask"></div>
+<div id="epDrawer">
+  <div class="hd"><b id="epTitle">选集</b><div class="x" id="epClose">✕</div></div>
+  <div class="bd"><div class="epgrid" id="epGrid2"></div></div>
+</div>
+
+<!-- ============ 投屏遥控面板 ============ -->
+<div id="castMask"></div>
+<div id="castPanel">
+  <div class="cpHd"><span class="cpDot"></span><b id="cpDev">正在投屏</b><div class="cpX" id="cpClose">✕</div></div>
+  <div class="cpTime"><span id="cpCur">00:00</span><span id="cpDur">--:--</span></div>
+  <input class="cpRange" type="range" id="cpSeek" min="0" max="1000" value="0" step="1">
+  <div class="cpRow">
+    <div class="cpB" data-op="back" data-v="30">«30</div>
+    <div class="cpB" data-op="back" data-v="10">«10</div>
+    <div class="cpB big" data-op="toggle" id="cpToggle">⏸</div>
+    <div class="cpB" data-op="fwd" data-v="10">10»</div>
+    <div class="cpB" data-op="fwd" data-v="30">30»</div>
+  </div>
+  <div class="cpRowV">
+    <span class="cpIc">🔊</span>
+    <input class="cpRange" type="range" id="cpVol" min="0" max="100" value="30">
+    <span class="cpNum" id="cpVolN">30</span>
+  </div>
+  <div class="cpMode">
+    <label><input type="checkbox" id="cpCompat"><span>老电视兼容模式</span></label>
+    <div class="cpModeHint">勾上后整集拼成一条流：老电视也能播，但拖不了进度。改完重新点一次投屏生效。</div>
+  </div>
+  <div class="cpRow2">
+    <div class="cpBtn2" id="cpEps">选集</div>
+    <div class="cpBtn2" id="cpFloat">悬浮遥控</div>
+  </div>
+  <div class="cpRow2">
+    <div class="cpBtn2 danger" id="cpStop" style="flex:1">停止投屏</div>
+  </div>
+</div>
+<div id="castPill"><span class="cpDot"></span><b id="castPillT">投屏中</b><span class="cpMini">遥控</span></div>
+<style>
+#castMask{position:fixed;inset:0;background:rgba(6,10,14,.55);opacity:0;pointer-events:none;transition:opacity .22s;z-index:9000}
+#castMask.on{opacity:1;pointer-events:auto}
+#castPanel{position:fixed;left:0;right:0;bottom:0;z-index:9001;
+  background:linear-gradient(180deg,#1B2838 0%,#171A21 100%);
+  border-top:1px solid rgba(102,192,244,.22);border-radius:18px 18px 0 0;
+  padding:14px 16px calc(18px + env(safe-area-inset-bottom,0px));
+  box-shadow:0 -14px 38px rgba(0,0,0,.62);
+  transform:translateY(118%);opacity:0;pointer-events:none;
+  transition:transform .36s cubic-bezier(.34,1.56,.64,1),opacity .24s}
+#castPanel.on{transform:translateY(0);opacity:1;pointer-events:auto}
+.cpMode{margin:6px 0 10px;padding:9px 11px;border-radius:11px;background:rgba(102,192,244,.07);
+  border:1px solid rgba(102,192,244,.16)}
+.cpMode label{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#C7D5E0}
+.cpMode input{width:16px;height:16px;accent-color:#66C0F4}
+.cpModeHint{font-size:10.5px;color:#8F98A0;line-height:1.45;margin-top:5px}
+.cpHd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.cpHd b{flex:1;color:#fff;font-size:14px;font-weight:600}
+.cpDot{width:8px;height:8px;border-radius:50%;background:#66C0F4;flex:0 0 8px;
+  animation:cpPulse 1.6s ease-in-out infinite}
+@keyframes cpPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.78)}}
+.cpX{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  color:#8F98A0;font-size:13px;background:rgba(255,255,255,.05);
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1),background .18s}
+.cpX:active{transform:scale(.88);background:rgba(255,255,255,.12)}
+.cpTime{display:flex;justify-content:space-between;color:#8F98A0;font-size:11px;
+  font-variant-numeric:tabular-nums;margin:2px 2px 4px}
+.cpRange{-webkit-appearance:none;appearance:none;width:100%;height:4px;margin:10px 0;outline:none;
+  border-radius:2px;background:#2A475E}
+.cpRange::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+  background:#66C0F4;box-shadow:0 0 0 4px rgba(102,192,244,.16);
+  transition:transform .16s cubic-bezier(.34,1.56,.64,1)}
+.cpRange::-webkit-slider-thumb:active{transform:scale(1.28)}
+.cpRow{display:flex;align-items:center;justify-content:center;gap:14px;margin:6px 0 4px}
+.cpB{width:48px;height:44px;border-radius:13px;background:#2A475E;color:#C7D5E0;
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;
+  transition:transform .16s cubic-bezier(.34,1.56,.64,1),background .16s}
+.cpB:active{transform:scale(.9);background:#35607F}
+.cpB.big{width:60px;height:52px;font-size:19px;color:#08131C;
+  background:linear-gradient(160deg,#8FD3FF,#4FAFE6);
+  box-shadow:0 6px 16px rgba(102,192,244,.28)}
+.cpB.big:active{transform:scale(.9)}
+.cpRowV{display:flex;align-items:center;gap:10px;margin:4px 0 8px}
+.cpIc{font-size:14px;filter:grayscale(.2)}
+.cpNum{width:30px;text-align:right;color:#8F98A0;font-size:12px;font-variant-numeric:tabular-nums}
+.cpRow2{display:flex;gap:10px}
+.cpBtn2{flex:1;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+  background:#2A475E;color:#C7D5E0;font-size:13px;font-weight:600;
+  transition:transform .16s cubic-bezier(.34,1.56,.64,1),background .16s}
+.cpBtn2:active{transform:scale(.95);background:#35607F}
+.cpBtn2.danger{background:rgba(226,94,94,.14);color:#E88;border:1px solid rgba(226,94,94,.3)}
+#castPill{position:fixed;left:50%;bottom:92px;z-index:8500;transform:translate(-50%,26px) scale(.9);
+  opacity:0;pointer-events:none;display:flex;align-items:center;gap:7px;
+  padding:8px 14px;border-radius:22px;background:rgba(27,40,56,.94);
+  border:1px solid rgba(102,192,244,.28);box-shadow:0 8px 22px rgba(0,0,0,.45);
+  color:#C7D5E0;font-size:12px;
+  transition:transform .34s cubic-bezier(.34,1.56,.64,1),opacity .22s}
+#castPill.on{transform:translate(-50%,0) scale(1);opacity:1;pointer-events:auto}
+#castPill:active{transform:translate(-50%,0) scale(.94)}
+#castPill b{color:#fff;font-size:12px;font-weight:600}
+.cpMini{color:#66C0F4;font-size:11px}
+</style>
+
+<script src="/hls.min.js"></script>
+<script>
+/* ============================================================
+   看剧 · 前端
+   数据走本机 127.0.0.1:8686（CoreServer），视频走 /proxy 转发
+   ============================================================ */
+var $=function(id){return document.getElementById(id)};
+var KX=(window.KX||null);
+function nat(o,f){
+  if(!KX||!KX[o]) return;
+  /* 必须把全部实参原样转发：     - 无参方法（castDiscover/castStop/chooseDir）多传一个 undefined 会报
+       "Method not found"（Android 按签名精确匹配），以前被 catch 吞掉，界面就静默无反应
+     - castPlayOnline 要 4 个参数，旧实现只传第 1 个，投屏地址直接丢了 */
+  var a=[].slice.call(arguments,1);
+  try{ return KX[o].apply(KX,a) }
+  catch(e){ (window.__natErr=window.__natErr||[]).push(o+": "+e.message) }
+}
+
+var S={
+  cats:[], cat:'movie', pg:1, list:[], busy:false, done:false,
+  hist:[], fav:[], skw:[],
+  d:null,                 // 当前详情
+  line:0,
+  p:{                     // 播放状态
+    vod:null, eps:[], i:0, hls:null, rates:[1,1.25,1.5,2,0.5], ri:0,
+    hideT:0, seeking:false
+  }
+};
+
+/* ---------- 本地存储 ---------- */
+function ls(k,d){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):d }catch(e){ return d } }
+function lss(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)) }catch(e){} }
+S.hist=ls('kx_hist',[]); S.fav=ls('kx_fav',[]); S.skw=ls('kx_skw',[]);
+
+/* ---------- 网络 ---------- */
+function api(path,cb){
+  var x=new XMLHttpRequest();
+  x.open('GET',path,true); x.timeout=20000;
+  x.onload=function(){
+    var j=null; try{ j=JSON.parse(x.responseText) }catch(e){}
+    cb(j);
+  };
+  x.onerror=x.ontimeout=function(){ cb(null) };
+  x.send();
+}
+function jpost(path,body,cb){
+  var x=new XMLHttpRequest();
+  x.open('POST',path,true); x.timeout=20000;
+  x.setRequestHeader('Content-Type','application/json');
+  x.onload=function(){ var j=null; try{j=JSON.parse(x.responseText)}catch(e){} cb(j) };
+  x.onerror=x.ontimeout=function(){cb(null)};
+  x.send(JSON.stringify(body||{}));
+}
+
+/* ---------- 工具 ---------- */
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] }) }
+function fmt(t){
+  t=Math.max(0,Math.floor(t||0));
+  var h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;
+  var mm=(m<10?'0':'')+m, ss=(s<10?'0':'')+s;
+  return h>0 ? (h+':'+mm+':'+ss) : (mm+':'+ss);
+}
+function tip(msg,ms){
+  var e=$('pTip'); e.textContent=msg; e.classList.add('on');
+  clearTimeout(e._t); e._t=setTimeout(function(){ e.classList.remove('on') },ms||1200);
+}
+
+/* ============================================================
+   首页：分类 + 卡片墙
+   ============================================================ */
+
+/* ---------- 布局：顶栏 + 分类条是 fixed 的，正文必须让出它们的高度，否则首行卡片被盖住 ---------- */
+var _barH = -1;
+function layoutBars(){
+  var t=$('top'), c=$('cats'), sc=$('scroller');
+  if(!t||!c||!sc) return;
+  var th = t.offsetHeight||0;
+  var ch = c.offsetHeight||0;
+  c.style.top = th+'px';                 /* 分类条紧贴顶栏下沿 */
+  var want = th+ch;
+  if(want!==_barH){
+    _barH = want;
+    sc.style.top = want+'px';            /* 正文从分类条下面开始 */
+    sc.style.paddingBottom = '0px';
+  }
+}
+/* 图片加载完、字体变了、转屏了，高度都可能变，统一重算 */
+function relayoutSoon(){
+  _barH = -1;
+  layoutBars();
+  setTimeout(layoutBars,60);
+  setTimeout(layoutBars,240);
+}
+
+function loadCats(tries){
+  tries = tries || 0;
+  api('/api/cats',function(j){
+    if(!j || !j.cats || !j.cats.length){
+      /* 分类表还在后台拉（首次要几秒），先把影片库内容load出来，别让首页空着 */
+      if(tries === 0) loadList(true);
+      if(j && j.warming && tries < 12){
+        setTimeout(function(){ loadCats(tries+1) }, 1200);
+      }
+      return;
+    }
+    S.cats=j.cats;
+    renderCats();
+    if(!S.list.length) loadList(true);
+  });
+}
+function renderCats(){
+  var h='';
+  for(var i=0;i<S.cats.length;i++){
+    var c=S.cats[i];
+    h+='<div class="chip'+(c.id===S.cat?' on':'')+'" data-id="'+esc(c.id)+'">'+esc(c.name)+'</div>';
+  }
+  $('cats').innerHTML=h;
+  relayoutSoon();
+}
+$('cats').addEventListener('click',function(e){
+  var t=e.target.closest('.chip'); if(!t) return;
+  var id=t.getAttribute('data-id');
+  /* 以前 if(id===S.cat) return：上一次如果失败（比如请求超时），
+     再点同一个分类就永远没反应，看着就是「点了不动」。现在允许重来。 */
+  S.cat=id;
+  var cs=$('cats').children;
+  for(var i=0;i<cs.length;i++) cs[i].classList.toggle('on',cs[i].getAttribute('data-id')===id);
+  t.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+  loadList(true);
+});
+
+/* 远程图片统一走本地 /img 代理：带 Referer 取一次 + 落磁盘缓存。
+   豆瓣的图有防盗链，直连一律 403（榜单页曾因此 30 张全裂）；
+   采集站的图直连还能出来，但每次进列表几十张重下很慢。
+   ref 默认给豆瓣，采集站的条目自带 ref 就用它自己的。 */
+function picp(raw,ref){
+  if(!raw) return '';
+  if(raw.indexOf('/img?')===0) return raw;
+  if(raw.indexOf('http')!==0) return raw;
+  var r=ref||'';
+  if(!r && raw.indexOf('doubanio.com')>=0) r='https://movie.douban.com/';
+  return '/img?u='+encodeURIComponent(raw)+(r?('&r='+encodeURIComponent(r)):'');
+}
+
+function skelGrid(n){
+  var h='';
+  for(var i=0;i<n;i++) h+='<div class="card"><div class="pic skel"></div></div>';
+  $('grid').innerHTML=h;
+}
+
+function loadList(reset){
+  /* 只有「上滑加载更多」才需要防重入；切分类必须立刻发新请求。
+     以前这里是无条件 if(S.busy) return，快速点两个分类时第二次直接被吞，
+     界面上看着像「点了分类没反应」——这也是「分类不准」的一半原因。 */
+  if(!reset && (S.busy || S.done)){
+    /* 上一页还在路上就滚到了底：照样给忙碌提示。
+       以前这里直接 return，底部一直挂着「上滑加载更多」，用户只当是卡住了。 */
+    if(S.busy){
+      $('more').className='loadmore busy';
+      $('more').innerHTML='<span class="spin"></span>正在加载新电影…';
+    }
+    return;
+  }
+  if(reset){ S.pg=1; S.list=[]; S.done=false; skelGrid(9); }
+  if(S.done) return;
+  S.busy=true;
+  var gen=(S.gen=(S.gen||0)+1);     /* 代际号：只认最新一次请求的结果 */
+  var catNow=S.cat, pgNow=S.pg;
+  $('more').className='loadmore busy';
+  $('more').innerHTML='<span class="spin"></span>正在加载新电影…';
+  addSkelGrid(3);
+  api('/api/list?t='+encodeURIComponent(catNow)+'&pg='+pgNow+'&n=60',function(j){
+    if(gen!==S.gen) return;         /* 过期响应，直接丢掉，别覆盖新分类的结果 */
+    S.busy=false;
+    if(!j||!j.list){
+      S.busy=false;
+      clearSkel();
+      $('more').className='loadmore';
+      $('more').innerHTML='<span style="color:#ff8a80">加载失败</span> · 点这里重试';
+      $('more').onclick=function(){ $('more').onclick=null; loadList(true) };
+      return;
+    }
+    var add=j.list;
+    if(add.length<8) S.done=true;
+    S.list=S.list.concat(add);
+    renderGrid(reset);
+    clearSkel();
+    $('more').className='loadmore';
+    if(!S.done){ S.pg++; $('more').innerHTML='上滑加载更多' }
+    else $('more').innerHTML=S.list.length?('— 共 '+S.list.length+' 部 —'):'';
+    if(!S.list.length){ $('grid').innerHTML='<div class="empty" style="grid-column:1/-1"><div class="big">▦</div>这个分类暂时没内容<br>换个分类看看</div>' }
+  });
+}
+
+function renderGrid(reset){
+  var h='';
+  for(var i=0;i<S.list.length;i++){
+    var v=S.list[i];
+    var pic=v.pic?('background:#22354a" data-src="'+esc(v.pic)):'';
+    h+='<div class="card hw" data-i="'+i+'" style="animation-delay:'+Math.min(i%9,8)*22+'ms">'
+      +'<div class="pic" style="'+(v.pic?'':'background:#22354a')+'"'+(v.pic?' data-src="'+esc(v.pic)+'" data-ref="'+esc(v.ref||'')+'"':'')+'>'
+      +(v.pic?'':'<div class="ph">'+esc((v.name||'?').charAt(0))+'</div>')+'</div>'
+      +(v.remarks?'<div class="badge">'+esc(v.remarks)+'</div>':'')
+      +'<div class="mask"><div class="nm">'+esc(v.name)+'</div>'
+      +(v.year?'<div class="rm">'+esc(v.year)+'</div>':'')+'</div></div>';
+  }
+  $('grid').innerHTML=h;
+  lazyImg($('grid'));
+}
+/* 触底加载时先铺几张骨架卡：以前底部只有一句「加载中…」，而且离底 700px 就开始
+   预取，用户真拉到底时数据早就到了，看起来就是「明明卡住了，突然唰一下多一堆」。
+   现在拉到底能看见占位卡在转，数据到了原地替换。 */
+function addSkelGrid(n){
+  var g=$('grid'); if(!g) return;
+  var h='';
+  for(var i=0;i<n;i++) h+='<div class="card skelcard"><div class="pic skel"></div></div>';
+  g.insertAdjacentHTML('beforeend',h);
+}
+function clearSkel(){
+  var g=$('grid'); if(!g) return;
+  var a=g.querySelectorAll('.skelcard');
+  for(var i=0;i<a.length;i++) if(a[i].parentNode) a[i].parentNode.removeChild(a[i]);
+}
+/* 榜单海报：豆瓣图带 Referer 才给（不带直接 418），偶尔抖一下就裂。
+   给它一次重试，再不行就显示首字占位，别留一个破图标。 */
+function rkImgErr(el){
+  if(!el._t){ el._t=1;
+    var s=el.getAttribute('src');
+    setTimeout(function(){ el.setAttribute('src', s+(s.indexOf('?')>0?'&':'?')+'t='+Date.now()) },700);
+    return;
+  }
+  var d=document.createElement('div');
+  d.className='rkPic';
+  d.textContent=(el.getAttribute('alt')||'?').charAt(0);
+  d.style.cssText='display:flex;align-items:center;justify-content:center;color:#6f7d89;font-size:18px';
+  if(el.parentNode) el.parentNode.replaceChild(d,el);
+}
+
+function lazyImg(root){
+  var imgs=root.querySelectorAll('.pic[data-src]');
+  for(var i=0;i<imgs.length;i++){
+    (function(el){
+      if(el._done) return; el._done=1;
+      /* 直连采集站的图有三个坑：有的站校验 Referer 直接 403（灰块）、没有本地缓存
+         （每次进列表重下几十张，弱网等很久）、几十张并发把连接数占满连接口都排不上。
+         统一走本地 /img：带 Referer 取一次、落磁盘缓存，之后毫秒级命中。 */
+      var raw=el.getAttribute('data-src');
+      var src='/img?u='+encodeURIComponent(raw)+'&r='+encodeURIComponent(el.getAttribute('data-ref')||'');
+      var im=new Image();
+      var tries=0;
+      im.onload=function(){ el.style.backgroundImage='url("'+src+'")'; el.style.backgroundSize='cover';
+        el.style.backgroundPosition='center'; el.classList.remove('skel'); var ph=el.querySelector('.ph'); if(ph) ph.remove() };
+      im.onerror=function(){ if(tries++<1){ setTimeout(function(){ im.src=src+'&t='+Date.now() },900) } else { el._done=0 } };
+      im.src=src;
+    })(imgs[i]);
+  }
+}
+$('grid').addEventListener('click',function(e){
+  var c=e.target.closest('.card'); if(!c) return;
+  if(!c.hasAttribute('data-i')) return;           /* 骨架占位卡，点了也没有对应片 */
+  var v=S.list[+c.getAttribute('data-i')];
+  if(v) openDetail(v);
+});
+$('btnRefresh').addEventListener('click',function(){ S.busy=false; loadList(true) });
+
+/* 滚动加载 + 隐藏顶栏 + 回顶 */
+$('scroller').addEventListener('scroll',function(){
+  var sc=$('scroller');
+  if(sc.scrollTop>140){ $('top').classList.add('hide'); $('cats').classList.add('hide') }
+  else { $('top').classList.remove('hide'); $('cats').classList.remove('hide') }
+  $('fab').classList.toggle('show',sc.scrollTop>560);
+  if(sc.scrollTop+sc.clientHeight>sc.scrollHeight-700) loadList(false);
+},{passive:true});
+$('fab').addEventListener('click',function(){ $('scroller').scrollTo({top:0,behavior:'smooth'}) });
+
+/* ============================================================
+   搜索 + 联想
+   ============================================================ */
+var sTimer=0;
+$('sinput').addEventListener('input',function(){
+  var v=this.value.trim();
+  clearTimeout(sTimer);
+  if(!v){ showDrop([]); return }
+  sTimer=setTimeout(function(){
+    api('/api/suggest?kw='+encodeURIComponent(v),function(j){
+      var sug=(j&&j.list)||[];
+      var hist=S.skw.filter(function(k){ return k.indexOf(v)>=0 }).slice(0,4);
+      var all=[]; var seen={};
+      hist.forEach(function(k){ if(!seen[k]){seen[k]=1;all.push({t:k,kind:'历史'})} });
+      sug.forEach(function(k){ if(!seen[k]){seen[k]=1;all.push({t:k,kind:'联想'})} });
+      showDrop(all);
+    });
+  },160);
+});
+$('sinput').addEventListener('focus',function(){
+  if(!this.value.trim()){ showDrop(S.skw.slice(0,6).map(function(k){return {t:k,kind:'历史'}})) }
+});
+$('sclr').addEventListener('click',function(){
+  $('sinput').value=''; showDrop([]); loadList(true);
+});
+function showDrop(arr){
+  var d=$('sdrop');
+  if(!arr||!arr.length){ d.classList.remove('show'); d.innerHTML=''; return }
+  var h=''; var hasHist=0;
+  for(var i=0;i<arr.length;i++){
+    var ist=arr[i].kind==='历史';
+    if(ist) hasHist=1;
+    h+='<div class="srow" data-k="'+esc(arr[i].t)+'"><span class="k">'+esc(arr[i].kind)+'</span>'
+      +'<span class="t">'+esc(arr[i].t)+'</span>'
+      +(ist?'<span class="del" data-dk="'+esc(arr[i].t)+'">×</span>':'')+'</div>';
+  }
+  // 只要下拉里有历史条目，就给一个清空入口（单条删除在每行右边的 ×）
+  if(hasHist) h+='<div class="srow" style="justify-content:center"><span class="clr" id="skwClr">清空搜索历史</span></div>';
+  d.innerHTML=h; d.classList.add('show');
+}
+$('sdrop').addEventListener('click',function(e){
+  // 单条删除
+  var x=e.target.closest('.del');
+  if(x){
+    e.stopPropagation();
+    var dk=x.getAttribute('data-dk');
+    S.skw=S.skw.filter(function(k){ return k!==dk });
+    lss('kx_skw',S.skw);
+    var cur=$('sinput').value.trim();
+    showDrop(cur?S.skw.filter(function(k){return k.indexOf(cur)>=0}).map(function(k){return {t:k,kind:'历史'}})
+                 :S.skw.slice(0,6).map(function(k){return {t:k,kind:'历史'}}));
+    return;
+  }
+  // 清空搜索历史（点两下才真清，免得误触）
+  var c=e.target.closest('#skwClr');
+  if(c){
+    e.stopPropagation();
+    if(c.getAttribute('data-armed')==='1'){
+      S.skw=[]; lss('kx_skw',S.skw); showDrop([]);
+      tip('搜索历史已清空',1600);
+    }else{
+      c.setAttribute('data-armed','1');
+      c.textContent='再点一次清空';
+      c.classList.add('warn');
+    }
+    return;
+  }
+  var r=e.target.closest('.srow'); if(!r) return;
+  var k=r.getAttribute('data-k');
+  $('sinput').value=k; $('sdrop').classList.remove('show');
+  doSearch(k);
+});
+$('sinput').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){ this.blur(); doSearch(this.value.trim()) }
+});
+
+function doSearch(kw){
+  if(!kw){ loadList(true); return }
+  S.skw=[kw].concat(S.skw.filter(function(x){return x!==kw})).slice(0,20);
+  lss('kx_skw',S.skw);
+  S.mode='search'; S.done=true; showHome();
+  $('hTitle').textContent='「'+kw+'」';
+  skelGrid(9);
+  $('more').textContent='搜索中…';
+  /* 代际号：连打两次搜索，先发的可能后到。不认代际号就会拿旧关键词的结果
+     盖掉新关键词的（标题写着 B、列表却是 A）。loadList 早就有这个保护，这里补齐。 */
+  var gen=(S.sgen=(S.sgen||0)+1);
+  api('/api/search?kw='+encodeURIComponent(kw),function(j){
+    if(gen!==S.sgen) return;
+    if(!j||!j.list){ $('grid').innerHTML='<div class="empty" style="grid-column:1/-1"><div class="big">⌕</div>搜索失败<br>网络或源站问题</div>'; $('more').textContent=''; return }
+    S.list=j.list;
+    renderGrid(true);
+    $('more').textContent=S.list.length?('— 共 '+S.list.length+' 部 · '+(j.ms||0)+'ms —'):'';
+    if(!S.list.length) $('grid').innerHTML='<div class="empty" style="grid-column:1/-1"><div class="big">⌕</div>没找到「'+esc(kw)+'」<br>换个名字试试</div>';
+  });
+}
+
+/* ============================================================
+   详情页
+   ============================================================ */
+function openDetail(v){
+  S.d=v; S.line=0; S.p.line=0; S.p.err=0;
+  $('dName').textContent=v.name||'—';
+  var _dp=picp(v.pic,v.ref);
+  $('dPic').src=_dp;
+  $('dPic').style.opacity=_dp?1:0;
+  $('dBg').style.backgroundImage=_dp?('url("'+_dp+'")'):'none';
+  var tg='';
+  if(v.year) tg+='<span>'+esc(v.year)+'</span>';
+  if(v.type) tg+='<span>'+esc(v.type)+'</span>';
+  if(v.area) tg+='<span>'+esc(v.area)+'</span>';
+  if(v.eps) tg+='<span>'+v.eps+' 集</span>';
+  $('dTags').innerHTML=tg;
+  $('dDesc').textContent=v.desc||v.remarks||'暂无简介';
+  // 收藏态
+  var isFav=S.fav.some(function(x){ return x.src===v.src&&x.id===v.id });
+  $('dFav').textContent=isFav?'★ 已收藏':'★ 收藏';
+  $('dFav').style.color=isFav?'#ffd166':'';
+  // 线路
+  var lh='';
+  for(var i=0;i<(v.lines||[]).length;i++){
+    var l=v.lines[i];
+    lh+='<div class="lchip'+(i===0?' on':'')+'" data-l="'+i+'">'+esc(l.from)+' ·'+l.n+'集</div>';
+  }
+  $('dLines').innerHTML=lh;
+  $('detail').classList.add('show','in');
+  loadEps(0);
+  // 断点续播文案
+  var h=histOf(v);
+  $('dPlay').textContent = h ? ('▶ 继续看 '+h.epName) : '▶ 立即播放';
+}
+function loadEps(li){
+  var v=S.d; if(!v) return;
+  S.line=li;
+  var cs=$('dLines').children;
+  for(var i=0;i<cs.length;i++) cs[i].classList.toggle('on',+cs[i].getAttribute('data-l')===li);
+  $('dEps').innerHTML='<div class="loadmore" style="grid-column:1/-1">读取选集…</div>';
+  api('/api/play?src='+encodeURIComponent(v.src)+'&id='+encodeURIComponent(v.id)+'&line='+li,function(j){
+    if(!j||!j.eps){ $('dEps').innerHTML='<div class="empty" style="grid-column:1/-1">这条线路取不到选集</div>'; return }
+    S.eps=j.eps;
+    var h='';
+    for(var i=0;i<j.eps.length;i++){
+      h+='<div class="ep" data-e="'+i+'">'+esc(j.eps[i].name)+'</div>';
+    }
+    $('dEps').innerHTML=h;
+    $('dEpT').textContent='选集（'+(j.eps.length||0)+' 集 · '+esc(j.lineName||'')+'）';
+  });
+}
+$('dLines').addEventListener('click',function(e){
+  var t=e.target.closest('.lchip'); if(!t) return;
+  loadEps(+t.getAttribute('data-l'));
+});
+$('dEps').addEventListener('click',function(e){
+  var t=e.target.closest('.ep'); if(!t) return;
+  playAt(+t.getAttribute('data-e'));
+});
+$('dPlay').addEventListener('click',function(){
+  var h=histOf(S.d);
+  playAt(h?h.ep:0);
+});
+$('dFav').addEventListener('click',function(){
+  var v=S.d; if(!v) return;
+  var i=-1;
+  for(var k=0;k<S.fav.length;k++) if(S.fav[k].src===v.src&&S.fav[k].id===v.id) i=k;
+  if(i>=0){ S.fav.splice(i,1); $('dFav').textContent='★ 收藏'; $('dFav').style.color='' }
+  else{ S.fav.unshift({src:v.src,id:v.id,name:v.name,pic:v.pic,year:v.year,eps:v.eps,ts:Date.now()});
+    S.fav=S.fav.slice(0,200); $('dFav').textContent='★ 已收藏'; $('dFav').style.color='#ffd166' }
+  lss('kx_fav',S.fav);
+});
+function histOf(v){
+  if(!v) return null;
+  for(var i=0;i<S.hist.length;i++){
+    var h=S.hist[i];
+    if(h.src===v.src&&h.id===v.id) return h;
+  }
+  return null;
+}
+
+/* ============================================================
+   播放器
+   ============================================================ */
+var vid=$('vid'), hls=null;
+
+function playAt(i){
+  var v=S.d; if(!v||!S.eps||!S.eps.length) return;
+  // 正在投屏：选集就等于在电视上换集，本地不播
+  if(CAST.on && CAST.i>=0){
+    if(i<0) i=0; if(i>=S.eps.length) i=S.eps.length-1;
+    var e2=S.eps[i];
+    S.p.vod=v; S.p.eps=S.eps; S.p.i=i; S.p.offlineId=null;
+    if(!e2){ tip('这一集还没有选集信息'); return }
+    nat('castPlayAt',CAST.i,v.src,v.id,(S.p.line||0),i,castMode(),(v.name||'')+' '+(e2.name||''));
+    tip('电视换到 '+(e2.name||('第'+(i+1)+'集')),1800);
+    return;
+  }
+  if(i<0) i=0; if(i>=S.eps.length) i=S.eps.length-1;
+  S.p.vod=v; S.p.eps=S.eps; S.p.i=i; S.p.err=0; S.p.offlineId=null;
+  if(typeof S.p.line!=='number') S.p.line=0;
+  var ep=S.eps[i];
+  $('pv').classList.add('show');
+  document.body.classList.add('fs');
+  nat('lock',true); nat('fullscreen',true);
+  $('pName').textContent=v.name||'';
+  $('pEp').textContent=(ep.name||('第'+(i+1)+'集'));
+  startPlay(ep.proxy||ep.u);
+  showCtl();
+}
+/* 自动换源开关（默认开，localStorage 里写 kx_autosrc=0 可关） */
+function autoSrc(){ return ls('kx_autosrc',1)?1:0 }
+
+/**
+ * 换到下一条线路，停在当前集。
+ * 返回 true 表示已经开始换，false 表示没有可换的线路了。
+ */
+function switchLine(li, epIdx){
+  var v=S.p.vod; if(!v) return false;
+  var total=(v.lines&&v.lines.length)||1;
+  if(li<0||li>=total) return false;
+  tip('自动切换到「'+(v.lines[li].from||('线路'+(li+1)))+'」');
+  api('/api/play?src='+encodeURIComponent(v.src)+'&id='+encodeURIComponent(v.id)+'&line='+li,function(j){
+    if(!j||!j.eps||!j.eps.length){ tip('这条线路也取不到选集'); return }
+    S.p.line=li;
+    S.p.eps=j.eps;
+    S.p.i=Math.max(0,Math.min(epIdx,j.eps.length-1));
+    var ep=S.p.eps[S.p.i];
+    $('pEp').textContent=(ep.name||('第'+(S.p.i+1)+'集'))+' · '+(j.lineName||'');
+    S.p.err=0;
+    startPlay(ep.proxy||ep.u);
+  });
+  return true;
+}
+
+function startPlay(url){
+  var sp=$('spin'); sp.style.display='block';
+  if(hls){ try{hls.destroy()}catch(e){} hls=null }
+  vid.pause(); vid.removeAttribute('src'); vid.load();
+  // 断点：同一集有记录就 seek
+  var h=histOf(S.p.vod);
+  var seek=0;
+  if(h && h.ep===S.p.i && h.t>15) seek=h.t;
+
+  if(window.Hls && Hls.isSupported()){
+    hls=new Hls({ maxBufferLength:34, maxMaxBufferLength:70, enableWorker:true,
+      lowLatencyMode:false, backBufferLength:30 });
+    hls.loadSource(url);
+    hls.attachMedia(vid);
+    hls.on(Hls.Events.MANIFEST_PARSED,function(){ sp.style.display='none'; tryPlay(seek) });
+    hls.on(Hls.Events.ERROR,function(e,d){
+      if(d&&d.fatal){
+        Log3('hls fatal '+d.type+' '+(d.details||''));
+        S.p.err=(S.p.err||0)+1;
+        // 先原样重试一次（多半是网络抖）
+        if(S.p.err===1){
+          tip('网络不稳，重试中…');
+          setTimeout(function(){ startPlay(url) },1500);
+          return;
+        }
+        // 还不行就自动换源：换下一条线路，停在当前集
+        if(autoSrc() && switchLine(S.p.line+1, S.p.i)) return;
+        sp.style.display='none';
+        tip('这条线路播不了，试试选集里换线路');
+      }
+    });
+  }else{
+    vid.src=url;
+    vid.addEventListener('loadedmetadata',function once(){
+      vid.removeEventListener('loadedmetadata',once); sp.style.display='none'; tryPlay(seek);
+    });
+    vid.load();
+  }
+}
+function tryPlay(seek){
+  if(seek>0){
+    try{ vid.currentTime=seek }catch(e){}
+    tip('已定位到上次看到的位置');
+  }
+  vid.play().catch(function(){ tip('点一下画面开始播放') });
+}
+function Log3(m){ try{ console.log(m) }catch(e){} }
+
+/* 播放/暂停 */
+$('bPlay').addEventListener('click',function(){
+  if(vid.paused){ vid.play().catch(function(){}) } else { vid.pause() }
+});
+vid.addEventListener('play',function(){ $('bPlay').textContent='❚❚' });
+vid.addEventListener('pause',function(){ $('bPlay').textContent='▶' });
+vid.addEventListener('waiting',function(){ $('spin').style.display='block' });
+vid.addEventListener('playing',function(){ $('spin').style.display='none'; S.p.err=0 });
+vid.addEventListener('canplay',function(){ $('spin').style.display='none' });
+
+/* 进度 */
+vid.addEventListener('timeupdate',function(){
+  if(S.p.seeking) return;
+  var d=vid.duration||0, c=vid.currentTime||0;
+  var pct=d>0?(c/d*100):0;
+  $('barFill').style.width=pct+'%';
+  $('barKnob').style.left=pct+'%';
+  $('tCur').textContent=fmt(c);
+  if(d>0) $('tDur').textContent=fmt(d);
+  // 断点保存（每 5 秒最多一次）
+  var now=Date.now();
+  if(!S.p.lastSave||now-S.p.lastSave>5000){ S.p.lastSave=now; saveHist(c,d) }
+});
+vid.addEventListener('loadedmetadata',function(){
+  $('tDur').textContent=fmt(vid.duration);
+});
+function saveHist(t,d){
+  var v=S.p.vod; if(!v) return;
+  var ep=S.p.eps[S.p.i]||{};
+  var rec={src:v.src,id:v.id,name:v.name,pic:v.pic,ep:S.p.i,epName:ep.name||('第'+(S.p.i+1)+'集'),
+    t:Math.floor(t||0),dur:Math.floor(d||0),ts:Date.now()};
+  S.hist=S.hist.filter(function(h){ return !(h.src===v.src&&h.id===v.id) });
+  S.hist.unshift(rec);
+  S.hist=S.hist.slice(0,120);
+  lss('kx_hist',S.hist);
+}
+
+/* 进度条拖动 */
+(function(){
+  var bar=$('bar'), drag=false;
+  function pos(e){
+    var r=bar.getBoundingClientRect();
+    var x=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+    return Math.max(0,Math.min(1,x/r.width));
+  }
+  function down(e){ drag=true; S.p.seeking=true; bar.classList.add('drag'); move(e); e.preventDefault() }
+  function move(e){
+    if(!drag) return;
+    var p=pos(e);
+    $('barFill').style.width=(p*100)+'%';
+    $('barKnob').style.left=(p*100)+'%';
+    var d=vid.duration||0;
+    $('tCur').textContent=fmt(p*d);
+    e.preventDefault();
+  }
+  function up(e){
+    if(!drag) return;
+    drag=false; S.p.seeking=false; bar.classList.remove('drag');
+    var p=pos(e.changedTouches?{touches:[e.changedTouches[0]]}:(e.touches?e:{touches:[{clientX:e.clientX}]}));
+    var d=vid.duration||0;
+    if(d>0){ try{ vid.currentTime=p*d }catch(err){} }
+  }
+  bar.addEventListener('touchstart',down,{passive:false});
+  bar.addEventListener('touchmove',move,{passive:false});
+  bar.addEventListener('touchend',up);
+  bar.addEventListener('mousedown',down);
+  window.addEventListener('mousemove',move);
+  window.addEventListener('mouseup',up);
+})();
+
+/* 倍速 */
+$('bRate').addEventListener('click',function(){
+  S.p.ri=(S.p.ri+1)%S.p.rates.length;
+  var r=S.p.rates[S.p.ri];
+  vid.playbackRate=r;
+  $('bRate').querySelector('.lbl').textContent=r.toFixed(r%1?2:1)+'×';
+  tip(r+' 倍速');
+});
+
+/* 上一集 / 下一集 */
+$('bPrev').addEventListener('click',function(){ if(S.p.i>0) playAt(S.p.i-1); else tip('已经是第一集') });
+$('bNext').addEventListener('click',function(){ if(S.p.i<S.p.eps.length-1) playAt(S.p.i+1); else tip('已经是最后一集') });
+vid.addEventListener('ended',function(){
+  if(S.p.i<S.p.eps.length-1){ tip('自动播放下一集'); playAt(S.p.i+1) }
+  else tip('看完了');
+});
+
+/* 控制条自动隐藏 */
+function showCtl(){
+  $('pTop').classList.remove('away'); $('pCtl').classList.remove('away');
+  clearTimeout(S.p.hideT);
+  S.p.hideT=setTimeout(function(){
+    if(!vid.paused){ $('pTop').classList.add('away'); $('pCtl').classList.add('away') }
+  },3600);
+}
+$('pTaps').addEventListener('click',function(){
+  var away=$('pCtl').classList.contains('away');
+  if(away) showCtl(); else { $('pTop').classList.add('away'); $('pCtl').classList.add('away') }
+});
+$('pCtl').addEventListener('touchstart',function(){ showCtl() },{passive:true});
+
+/* 选集抽屉 */
+$('bEps').addEventListener('click',function(){ openEpDrawer() });
+function openEpDrawer(){
+  DLMODE=0;
+  var h='';
+  for(var i=0;i<S.p.eps.length;i++){
+    h+='<div class="ep'+(i===S.p.i?' cur':'')+'" data-e="'+i+'">'+esc(S.p.eps[i].name)+'</div>';
+  }
+  $('epGrid2').innerHTML=h;
+  $('epTitle').textContent=(S.p.vod?S.p.vod.name:'')+' · 共'+S.p.eps.length+'集';
+  $('epDrawer').classList.add('on'); $('epMask').classList.add('on');
+}
+function closeEpDrawer(){ $('epDrawer').classList.remove('on'); $('epMask').classList.remove('on') }
+$('epClose').addEventListener('click',closeEpDrawer);
+$('epMask').addEventListener('click',closeEpDrawer);
+
+
+/* 退出播放 */
+$('pBack').addEventListener('click',exitPlay);
+function exitPlay(){
+  // 投屏中退出播放页不打断投屏：电视继续放，页面上留一个悬浮胶囊可以叫回来
+  saveHist(vid.currentTime,vid.duration);
+  try{ vid.pause() }catch(e){}
+  if(hls){ try{hls.destroy()}catch(e){} hls=null }
+  try{ vid.removeAttribute('src'); vid.load() }catch(e){}
+  $('pv').classList.remove('show');
+  document.body.classList.remove('fs');
+  nat('lock',false); nat('fullscreen',false);
+  closeEpDrawer();
+  $('dPlay').textContent='▶ 继续播放';
+}
+
+/* ============================================================
+   离线下载
+   ============================================================ */
+var DLMODE=0;   // 0=正常选集 1=选集下载
+$('dDl').addEventListener('click',function(){
+  if(!S.eps||!S.eps.length){ tip('选集还没加载完'); return }
+  DLMODE=1;
+  var h='';
+  for(var i=0;i<S.eps.length;i++){
+    h+='<div class="ep dl" data-e="'+i+'">'+esc(S.eps[i].name)+'</div>';
+  }
+  $('epGrid2').innerHTML=h;
+  $('epTitle').textContent='选择要下载的集（'+(S.d?S.d.name:'')+'）';
+  $('epDrawer').classList.add('on'); $('epMask').classList.add('on');
+});
+$('epGrid2').addEventListener('click',function(e){
+  var t=e.target.closest('.ep'); if(!t) return;
+  var i=+t.getAttribute('data-e');
+  closeEpDrawer();
+  if(DLMODE===1){ DLMODE=0; startDownload(i); return }
+  playAt(i);
+});
+function startDownload(i){
+  var v=S.d; if(!v){ tip('片源信息丢失'); return }
+  tip('已加入下载队列…');
+  api('/api/dl/add?src='+encodeURIComponent(v.src)+'&id='+encodeURIComponent(v.id)
+      +'&line='+(S.line||0)+'&ep='+i,function(j){
+    if(!j||j.err){ tip(j&&j.err?j.err:'加入失败'); return }
+    tip('开始下载：'+(j.name||''));
+  });
+}
+var dlTimer=0;
+function showDl(){
+  S.mode='dl'; S.done=true;
+  $('hTitle').textContent='离线下载';
+  showPage();
+  $('pgbox').innerHTML='<div class="loadmore">读取任务…</div>';
+  devLoad();
+  api('/api/dl/list',function(j){
+    var list=(j&&j.list)||[];
+    if(!list.length){
+      $('pgbox').innerHTML='<div class="empty"><div class="big">⬇</div>还没有下载任务<br>在详情页点 ⬇ 选一集下载</div>'+devPanel();
+      return;
+    }
+    var dn=(function(){ try{ return KX&&KX.exportDirName?KX.exportDirName():'' }catch(e){ return '' } })();
+    var h='<div style="display:flex;gap:8px;padding:0 12px 12px;align-items:center">'
+      +'<div style="flex:1;font-size:11.5px;color:#8F98A0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'
+      +(dn?('导出目录：'+esc(dn)):'未选导出目录')
+      +'</div>'
+      +'<div class="pbtn" style="height:30px" id="btnPickDir">选择目录</div></div>';
+    h+='<div class="hlist" style="padding:0 12px">';
+    for(var i=0;i<list.length;i++){
+      var t=list[i];
+      var st=t.state===2?'已完成':(t.state===1?'下载中…':(t.state===3?'失败':'排队中'));
+      var col=t.state===2?'#66C0F4':(t.state===3?'#ff6b6b':'#C7D5E0');
+      var pct=t.pct||0;
+      h+='<div class="hrow" style="flex-direction:column;align-items:stretch;gap:8px" data-dl="'+esc(t.id)+'">'
+        +'<div style="display:flex;gap:10px;align-items:center">'
+        +(t.pic?'<img src="'+esc(picp(t.pic))+'" style="width:46px;height:66px" loading="lazy">':'<div style="width:46px;height:66px;border-radius:7px;background:#22354a;flex-shrink:0"></div>')
+        +'<div style="flex:1;min-width:0">'
+        +'<b style="display:block;font-size:13.5px;color:#fff">'+esc(t.vodName)+'</b>'
+        +'<small style="font-size:11px;color:#8F98A0">'+esc(t.epName)+' · '+(t.bytes?(t.bytes/1048576).toFixed(1)+'MB':'')+'</small>'
+        +'<div style="font-size:11px;color:'+col+';margin-top:3px">'+st+' '+pct+'%</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:6px">'
+        +(t.local?'<div class="pbtn" style="height:32px" data-act="play" data-id="'+esc(t.id)+'">▶</div>':'')
+        +(t.local?'<div class="pbtn" style="height:32px" data-act="exp" data-id="'+esc(t.id)+'">导出</div>':'')
+        +'<div class="pbtn" style="height:32px" data-act="del" data-id="'+esc(t.id)+'">✕</div>'
+        +'</div></div>'
+        +'<div class="pg" style="height:3px;border-radius:2px;background:#2A475E;overflow:hidden">'
+        +'<i style="display:block;height:100%;width:'+pct+'%;background:'+col+';border-radius:2px"></i></div>'
+        +'</div>';
+    }
+    h+='</div>';
+    $('pgbox').innerHTML=h+devPanel();
+    if(list.some(function(x){return x.state===1||x.state===0})){
+      clearTimeout(dlTimer);
+      dlTimer=setTimeout(function(){ if(S.mode==='dl') showDl() },1500);
+    }
+  });
+}
+$('scroller').addEventListener('click',function(e){
+  if(e.target.id==='btnPickDir'){ nat('chooseDir'); return }
+  if(e.target.id==='btnA11y'){ nat('askA11y'); return }
+  if(e.target.id==='btnDevCopy'){ devCopy(); return }
+  var b=e.target.closest('[data-act]'); if(!b) return;
+  var act=b.getAttribute('data-act'), id=b.getAttribute('data-id');
+  if(act==='exp'){ nat('exportTask', id); tip('正在导出…'); }
+  else if(act==='del'){
+    api('/api/dl/del?id='+encodeURIComponent(id),function(){ showDl() });
+  }else if(act==='play'){
+    playLocal(id);
+  }
+});
+/* ============================================================
+   调试与诊断（给接手维护的人）
+   ------------------------------------------------------------
+   这个 App 的界面是 WebView，常规的界面检查工具看不到里面任何一个按钮，
+   所以这里把「设备环境 + 无障碍开关」摊开放在下载页底部：
+     · 出问题时先把设备信息复制走，接手的人才知道是哪个 ROM、什么分辨率；
+     · 打开无障碍服务后，就能用 /api/a11y/dump 导出界面结构、真点击做回归。
+   普通用户完全用不到，也不影响任何功能。
+   ============================================================ */
+/* ============================================================
+   DOM 导出（调试用）
+   ------------------------------------------------------------
+   window.__domDump() 返回当前页面的元素结构 JSON。给 /api/dom 用：
+   接手维护的人想定位"哪个按钮在哪个坐标"，无障碍树在 WebView 上是空的，
+   只有页面自己知道。普通使用完全不调用它。
+   ============================================================ */
+window.__domDump=function(opt){
+  opt=opt||{};
+  var maxN=opt.max||600, maxD=opt.depth||14;
+  var n=0, skip={SCRIPT:1,STYLE:1,META:1,LINK:1,HEAD:1,TITLE:1,BR:1};
+  var dpr=window.devicePixelRatio||1;
+
+  function vis(el,cs){
+    try{
+      if(cs.display==='none'||cs.visibility==='hidden'||parseFloat(cs.opacity)===0) return false;
+      var r=el.getBoundingClientRect();
+      return r.width>0 && r.height>0;
+    }catch(e){ return false }
+  }
+  function ownText(el){
+    var t='';
+    for(var i=0;i<el.childNodes.length;i++){
+      var c=el.childNodes[i];
+      if(c.nodeType===3) t+=c.nodeValue;
+    }
+    return t.replace(/\s+/g,' ').trim().slice(0,90);
+  }
+  function walk(el,depth){
+    if(n>=maxN||depth>maxD) return null;
+    var tag=(el.tagName||'').toUpperCase();
+    if(skip[tag]) return null;
+    var cs;
+    try{ cs=getComputedStyle(el) }catch(e){ return null }
+    if(!vis(el,cs)) return null;
+    n++;
+    var r=el.getBoundingClientRect();
+    var o={
+      t:tag,
+      b:[Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)]
+    };
+    if(el.id) o.i=el.id;
+    var cl=(el.className&&typeof el.className==='string')?el.className.trim().split(/\s+/).slice(0,2).join('.'):'';
+    if(cl) o.c=cl;
+    var tx=ownText(el);
+    if(tx) o.x=tx;
+    /* 可点判定。故意宽一点：很多按钮是事件委托（没有 onclick 属性），
+       靠 cursor:pointer 才能认出来。调试时多标几个没坏处，漏标才麻烦。 */
+    var clickable=el.hasAttribute('onclick')||el.tagName==='BUTTON'||el.tagName==='A'
+                  ||(el.getAttribute&&(el.getAttribute('role')==='button'))
+                  ||el.hasAttribute('data-act')||el.hasAttribute('data-i')
+                  ||el.hasAttribute('data-tab')||el.hasAttribute('data-coll')
+                  ||el.hasAttribute('data-idx')||el.hasAttribute('data-epid')
+                  ||cs.cursor==='pointer';
+    if(clickable) o.k=1;
+    if(el.disabled) o.d=1;
+    if(tag==='IMG') o.src=(el.getAttribute('src')||'').slice(0,120);
+    if(tag==='INPUT') o.v=(el.value||'').slice(0,40);
+    var kids=[];
+    for(var j=0;j<el.children.length;j++){
+      var k=walk(el.children[j],depth+1);
+      if(k) kids.push(k);
+    }
+    if(kids.length) o.kids=kids;
+    return o;
+  }
+  var root=walk(document.body,0);
+  return JSON.stringify({
+    ok:!!root, n:n, dpr:dpr,
+    vw:window.innerWidth, vh:window.innerHeight,
+    pxW:Math.round(window.innerWidth*dpr), pxH:Math.round(window.innerHeight*dpr),
+    url:location.pathname+location.hash,
+    tree:root
+  });
+};
+
+var DEV={info:null};
+
+function devPanel(){
+  return '<div id="devBox">'+devInner()+'</div>';
+}
+
+function devInner(){
+  var h='<div style="margin:18px 12px 8px;border-top:1px solid #2A475E;padding-top:14px">';
+  h+='<div style="font-size:11.5px;color:#8F98A0;letter-spacing:.5px;margin-bottom:9px">调试与诊断</div>';
+  var i=DEV.info;
+  if(i && !i.__loading){
+    h+='<div style="font-size:11.5px;color:#C7D5E0;line-height:1.75">'
+      +esc((i.brand||'')+' '+(i.model||''))+' · '+esc(i.rom||'')+' '+esc(i.romVer||'')+'<br>'
+      +'Android '+esc(i.android||'')+' (SDK '+esc(String(i.sdk||''))+') · '
+      +esc(String(i.pxW||''))+'×'+esc(String(i.pxH||''))+' px · '
+      +esc(String(i.density||''))+'x · '+esc(String(i.dpi||''))+'dpi<br>'
+      +'逻辑 '+esc(String(i.dpW||''))+'×'+esc(String(i.dpH||''))+' dp'
+      +(i.vulkan?' · Vulkan ✓':'')
+      +'</div>';
+  }else{
+    h+='<div style="font-size:11.5px;color:#8F98A0">读取设备信息…</div>';
+  }
+  var on=false;
+  try{ on=nat('a11yOn') }catch(e){}
+  h+='<div style="display:flex;align-items:center;gap:8px;margin-top:11px">'
+    +'<div style="flex:1;font-size:11.5px;color:'+(on?'#66C0F4':'#8F98A0')+'">'
+    +'无障碍调试服务：'+(on?'已开启':'未开启')
+    +'<br><span style="color:#8F98A0">开启后可用 /api/a11y/dump 导出界面结构</span></div>'
+    +(on?'':'<div class="pbtn" style="height:30px" id="btnA11y">去开启</div>')
+    +'</div>';
+  h+='<div style="display:flex;gap:8px;margin-top:10px">'
+    +'<div class="pbtn" style="height:30px" id="btnDevCopy">复制调试信息</div>'
+    +'<div style="flex:1;font-size:11px;color:#8F98A0;display:flex;align-items:center">v'
+    +esc((function(){try{return nat('version')}catch(e){return ''}})())+'</div>'
+    +'</div>';
+  h+='</div>';
+  return h;
+}
+
+/* 只回填自己那一块，绝不重调 showDl —— 那会把滚动位置和进度条打乱，
+   而且 showDl 里又会调 devLoad，直接死循环。 */
+function devLoad(){
+  if(DEV.info) return;
+  DEV.info={__loading:1};
+  setTimeout(function(){
+    var got=null;
+    try{ got=JSON.parse(nat('deviceInfo')) }catch(e){ got={err:String(e)} }
+    DEV.info=got||{err:'null'};
+    var box=$('devBox');
+    if(box) box.innerHTML=devInner();
+  },0);
+}
+
+function devCopy(){
+  var parts=[], i=DEV.info||{};
+  for(var k in i){ if(i.hasOwnProperty(k) && k!=='__loading') parts.push(k+'='+i[k]) }
+  var txt=parts.join('  ')+'  ver='+(function(){try{return nat('version')}catch(e){return ''}})();
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt); tip('调试信息已复制');
+    }else{ tip(txt); }
+  }catch(e){ tip(txt) }
+}
+
+function playLocal(id){
+  api('/api/dl/list',function(j){
+    var list=(j&&j.list)||[]; var t=null;
+    for(var i=0;i<list.length;i++) if(list[i].id===id) t=list[i];
+    if(!t){ tip('任务不存在'); return }
+    S.p.vod={name:t.vodName,src:t.src,id:t.vodId,lines:[]};
+    S.p.eps=[{name:t.epName,proxy:'/local?t='+encodeURIComponent(id)}];
+    S.p.i=0; S.p.line=0; S.p.err=0; S.p.offlineId=id;
+    $('pv').classList.add('show');
+    document.body.classList.add('fs');
+    nat('lock',true); nat('fullscreen',true);
+    $('pName').textContent=t.vodName||'';
+    $('pEp').textContent=(t.epName||'')+' · 离线';
+    startPlay('/local?t='+encodeURIComponent(id));
+    showCtl();
+  });
+}
+
+
+
+/* ============================================================
+   排行榜 / 不知道看什么
+   ------------------------------------------------------------
+   这两个页面是独立的 .page 层（和详情页同一套 show/in 机制），
+   不再往 #scroller 里塞内容 —— 那样会把 #grid 一起替换掉，
+   回到影片库时 loadList 找不到 #grid 直接崩（踩过一次）。
+   ============================================================ */
+var RK={coll:'movie_top250', colls:null, list:[]};
+var RD={type:'any', min:'4.0', block:true, busy:false, last:null,
+        avoid:ls('kx_rndavoid',true), seen:ls('kx_rndseen',[])};
+var MIN_RE=/^[0-9](\.[0-9])?$/;   /* 一位整数 + 可选一位小数：4 / 4.0 / 4.9 合法，10、1.25、-1 非法 */
+
+function pgOpen(id){
+  var e=$(id); if(!e) return;
+  e.classList.remove('in');
+  e.classList.add('show');
+  void e.offsetWidth;          /* 强制回流，让入场动画每次都重放 */
+  e.classList.add('in');
+}
+function pgClose(id){ var e=$(id); if(e){ e.classList.remove('show','in'); } }
+function pgCloseAll(){ pgClose('pageRank'); pgClose('pageRnd'); pgClose('pageSet'); }
+
+/* ---------------- 设置 / 片源管理 ---------------- */
+/* 为什么要有这个页面：内置的采集站是会死的（这类站以月计寿命）。全挂的那天，
+   用户把新接口粘进来就能接着用，不用等我出新版本。 */
+function showSet(){
+  S.mode='set';
+  pgOpen('pageSet');
+  var b=$('setBody');
+  if(b) b.innerHTML='<div class="rkEmpty">正在读片源…</div>';
+  api('/api/sources',function(j){
+    if(!$('setBody')) return;
+    if(!j){ $('setBody').innerHTML='<div class="rkEmpty">读不到片源列表</div>'; return }
+    renderSet((j.sources||[]));
+  });
+}
+
+function renderSet(list){
+  var mine=0,i;
+  for(i=0;i<list.length;i++) if(list[i].custom) mine++;
+  var h='<div class="setCard">';
+  h+='<div class="rndLbl" style="margin-bottom:8px">片源 · 共 '+list.length+' 个（自己加的 '+mine+' 个）</div>';
+  for(i=0;i<list.length;i++){
+    var s=list[i];
+    h+='<div class="setRow">'
+      +'<div class="dot '+(s.alive?'ok':'bad')+'"></div>'
+      +'<div style="flex:1;min-width:0"><b>'+esc(s.name)+'</b><small>'+esc(s.base)+'</small></div>'
+      +'<div class="pbtn" style="height:30px;margin-right:6px;font-size:11.5px" data-srcchk="'
+        +esc(s.key)+'">测</div>'
+      +(s.custom
+          ?'<div class="pbtn" style="height:30px" data-srcdel="'+esc(s.key)+'">✕</div>'
+          :'<span class="tag">内置</span>')
+      +'</div>';
+  }
+  h+='</div>';
+
+  h+='<div class="setCard">';
+  h+='<div class="rndLbl" style="margin-bottom:2px">添加自己的片源</div>';
+  h+='<input id="srcName" class="setInp" placeholder="名称（可留空，会自动用域名）" maxlength="24">';
+  h+='<input id="srcBase" class="setInp" placeholder="https://xxx.com" autocapitalize="off" autocorrect="off" spellcheck="false">';
+  h+='<div class="pbtn" id="srcAdd" style="height:42px;margin-top:10px;justify-content:center;'
+    +'background:rgba(102,192,244,.16);border-color:rgba(102,192,244,.4);color:#66C0F4">＋ 添加</div>';
+  h+='<div id="srcChk"></div>';
+  h+='<div style="font-size:11.5px;color:#6f7d89;margin-top:10px;line-height:1.7">'
+    +'· 要「苹果CMS」标准接口的站点，跟内置那几个是同一套<br>'
+    +'· 只填域名也行，会自动补 <b style="color:#8F98A0">/api.php/provide/vod</b><br>'
+    +'· 内置源删不掉，自己加的随时能删，删了不影响别的源'
+    +'</div>';
+  h+='</div>';
+  $('setBody').innerHTML=h;
+}
+
+/* 自检结果面板。用户最容易被坑的地方是「接口通了但分类参数不生效」——
+   表现是列表照常返回，点任何分类都是同一批「最新更新」。所以这里把
+   「分类能不能切换」「能不能取到播放地址」直接写出来，不让人靠猜。 */
+function renderChk(title,c){
+  var box=$('srcChk'); if(!box) return;
+  if(!c){ box.innerHTML=''; return }
+  var n=c.list==null?-1:c.list;
+  var ok=n>=1;
+  var rows=[];
+  rows.push(['列表', ok?(n+' 条/页'):'取不到']);
+  if(c.classes!=null) rows.push(['分类', c.classes+' 个']);
+  if(c.tWorks!=null) rows.push(['分类切换', c.tWorks?'正常':'✗ 参数不生效']);
+  if(c.playable!=null) rows.push(['播放地址', c.playable?'能取到':'✗ 取不到']);
+  var h='<div style="margin-top:12px;padding:10px 12px;border-radius:10px;'
+    +'background:rgba(102,192,244,.09);border:1px solid rgba(102,192,244,.28)">'
+    +'<div style="font-size:12.5px;color:#C7D5E0;margin-bottom:6px">'
+    +esc(title||'自检结果')+'</div>';
+  for(var i=0;i<rows.length;i++){
+    var bad=String(rows[i][1]).indexOf('✗')===0 || String(rows[i][1]).indexOf('取不到')>=0;
+    h+='<div style="display:flex;font-size:11.5px;line-height:1.85">'
+      +'<span style="width:64px;color:#6f7d89">'+rows[i][0]+'</span>'
+      +'<span style="color:'+(bad?'#FF8A80':'#8F98A0')+'">'+esc(String(rows[i][1]))+'</span></div>';
+  }
+  if(c.note) h+='<div style="font-size:11.5px;color:#8F98A0;margin-top:7px;line-height:1.65">'
+    +esc(c.note)+'</div>';
+  h+='</div>';
+  box.innerHTML=h;
+}
+
+function srcAdd(){
+  var nb=$('srcName')?$('srcName').value.trim():'';
+  var bb=$('srcBase')?$('srcBase').value.trim():'';
+  if(!bb){ toast2('先把地址填上'); return }
+  var btn=$('srcAdd'); if(btn) btn.textContent='正在试拉，稍等…';
+  api('/api/src/add?name='+encodeURIComponent(nb)+'&base='+encodeURIComponent(bb),function(j){
+    if(!j){ toast2('添加失败：本地服务没响应'); showSet(); return }
+    if(!j.ok){ toast2(j.err||'添加失败',2400); showSet(); return }
+    toast2('已添加',1800);
+    showSet();
+    // showSet 是异步重绘的，等它把 #srcChk 建出来再填
+    setTimeout(function(){ renderChk('刚加的源：'+(j.name||''),j.check) },260);
+  });
+}
+
+function srcCheck(k){
+  toast2('正在测…',1200);
+  api('/api/src/check?key='+encodeURIComponent(k),function(j){
+    if(!j){ toast2('测试失败'); return }
+    renderChk(k,j.check);
+    var box=$('srcChk'); if(box) box.scrollIntoView({block:'center',behavior:'smooth'});
+  });
+}
+
+document.addEventListener('click',function(e){
+  if(e.target.id==='btnSet'){ showSet(); return }
+  if(e.target.id==='srcAdd'){ srcAdd(); return }
+  var ck=e.target.closest('[data-srcchk]');
+  if(ck){ srcCheck(ck.getAttribute('data-srcchk')); return }
+  var d=e.target.closest('[data-srcdel]');
+  if(d){
+    var k=d.getAttribute('data-srcdel');
+    api('/api/src/del?key='+encodeURIComponent(k),function(j){
+      toast2(j&&j.ok?'已删除':'删不掉（内置源不能删）',2200);
+      showSet();
+    });
+    return;
+  }
+});
+
+function toast2(msg,ms){
+  var e=$('pgToast'); if(!e) return;
+  e.textContent=msg; e.classList.add('on');
+  clearTimeout(e._t); e._t=setTimeout(function(){ e.classList.remove('on') },ms||1600);
+}
+
+function showRank(){
+  /* 必须设 S.mode：以前没设，返回键走到「S.mode 还是 home」那一步就判定成
+     「已经在家」，直接退到系统桌面 —— 这就是「在排行榜按返回直接退出应用」。 */
+  S.mode='rank';
+  pgOpen('pageRank');
+  if(!RK.colls){
+    $('rkBody').innerHTML='<div class="rkEmpty">正在取榜单…</div>';
+    api('/api/rank/colls',function(j){
+      RK.colls=(j&&j.colls)||[];
+      loadRank(RK.coll);
+    });
+    return;
+  }
+  loadRank(RK.coll);
+}
+
+function loadRank(coll){
+  RK.coll=coll;
+  var h='', cs=RK.colls||[];
+  for(var i=0;i<cs.length;i++){
+    h+='<div class="rkChip'+(cs[i].id===coll?' on':'')+'" data-coll="'+esc(cs[i].id)+'">'+esc(cs[i].name)+'</div>';
+  }
+  $('rkColls').innerHTML=h;
+  $('rkBody').innerHTML='<div class="rkEmpty">正在取榜单…</div>';
+  api('/api/rank?coll='+encodeURIComponent(coll)+'&n=30',function(j){
+    var list=(j&&j.list)||[];
+    RK.list=list;
+    if(!list.length){
+      $('rkBody').innerHTML='<div class="rkEmpty">这个榜单暂时取不到<br>（豆瓣偶尔会挡一下，等会儿再试）</div>';
+      return;
+    }
+    var h2='';
+    for(var i=0;i<list.length;i++){
+      var v=list[i];
+      var cls='rkNo'+(i===0?' top1':i===1?' top2':i===2?' top3':'');
+      var sub=[];
+      if(v.year) sub.push(v.year);
+      if(v.card){
+        var segs=String(v.card).split('/');
+        for(var k=1;k<segs.length&&sub.length<3;k++){ var t=segs[k].trim(); if(t) sub.push(t); }
+      }
+      h2+='<div class="rkRow" data-ri="'+i+'">'
+        +'<div class="'+cls+'">'+(i+1)+'</div>'
+        +(v.pic?'<img class="rkPic" src="'+esc(picp(v.pic))+'" loading="lazy" alt="'+esc(v.name||'')+'" onerror="rkImgErr(this)">'
+              :'<div class="rkPic"></div>')
+        +'<div class="rkInf"><b>'+esc(v.name)+'</b><small>'+esc(sub.join(' · '))+'</small></div>'
+        +(v.score>=0?'<div class="rkSc">'+v.score.toFixed(1)+'</div>':'')
+        +'</div>';
+    }
+    $('rkBody').innerHTML=h2;
+  });
+}
+
+/* 点榜单条目：拿片名去采集站搜，命中就进详情页 */
+function openByName(name,year){
+  toast2('正在找「'+name+'」…');
+  api('/api/search?kw='+encodeURIComponent(name),function(j){
+    var list=(j&&j.list)||[];
+    if(!list.length){ toast2('采集站里没找到这部'); return; }
+    var pick=list[0];
+    if(year){
+      for(var i=0;i<list.length;i++){
+        if(String(list[i].year||'')===String(year)){ pick=list[i]; break; }
+      }
+    }
+    pgCloseAll();
+    openDetail(pick);
+  });
+}
+
+/* ---------------- 不知道看什么 ---------------- */
+
+function showRnd(){
+  S.mode='rnd';
+  pgOpen('pageRnd');
+  var h='<div class="rndWrap"><div class="rndCard">'
+    +'<div class="rndLbl">想看什么</div>'
+    +'<div class="seg" id="rndSeg">'
+    +'<div data-ty="movie"'+(RD.type==='movie'?' class="on"':'')+'>电影</div>'
+    +'<div data-ty="tv"'+(RD.type==='tv'?' class="on"':'')+'>电视剧</div>'
+    +'<div data-ty="any"'+(RD.type==='any'?' class="on"':'')+'>都行</div>'
+    +'</div>'
+    +'<div class="rndRow">'
+    +'<span class="rndLbl" style="margin:0">不低于</span>'
+    +'<input id="rndMin" value="'+esc(RD.min)+'" inputmode="decimal" maxlength="3">'
+    +'<span class="rndLbl" style="margin:0">分</span>'
+    +'</div>'
+    +'<div class="rndHint" id="rndHint" style="margin-top:7px">格式 0~9，可带一位小数（如 4 / 4.5）</div>'
+    +'<div class="rndRow" style="margin-top:16px">'
+    +'<span class="rndLbl" style="margin:0">屏蔽低于这个分数的</span>'
+    +'<div class="sw'+(RD.block?' on':'')+'" id="rndSw"><i></i></div>'
+    +'</div>'
+    +'<div class="rndRow" style="margin-top:13px">'
+    +'<span class="rndLbl" style="margin:0">抽过的不再抽</span>'
+    +'<div class="sw'+(RD.avoid?' on':'')+'" id="rndSw2"><i></i></div>'
+    +'</div>'
+    +'<button id="rndGo">抽 一 个</button>'
+    +'<div class="rndStage" id="rndStage"></div>'
+    +'</div>'
+    +'<div id="rndSeenWrap"></div></div>';
+  $('rndBody').innerHTML=h;
+  rndSeenRender();
+  if(RD.last) drawPick(RD.last,false);
+  bindRnd();
+}
+
+function bindRnd(){
+  var seg=$('rndSeg');
+  if(seg) seg.onclick=function(e){
+    var d=e.target.closest('[data-ty]'); if(!d) return;
+    RD.type=d.getAttribute('data-ty');
+    var cs=seg.children;
+    for(var i=0;i<cs.length;i++) cs[i].classList.toggle('on',cs[i]===d);
+  };
+  var mi=$('rndMin');
+  if(mi){
+    mi.oninput=function(){
+      var ok=MIN_RE.test(mi.value);
+      mi.classList.toggle('bad',!ok);
+      var hint=$('rndHint');
+      hint.classList.toggle('bad',!ok);
+      hint.textContent=ok?'格式 0~9，可带一位小数（如 4 / 4.5）'
+                        :'只能一位数字，可带一位小数（1 / 1.0 / 1.1）';
+    };
+    mi.onblur=function(){
+      if(!MIN_RE.test(mi.value)){
+        mi.value=RD.min||'4.0';
+        mi.classList.remove('bad');
+        var hint=$('rndHint');
+        hint.classList.remove('bad');
+        hint.textContent='格式 0~9，可带一位小数（如 4 / 4.5）';
+      }
+    };
+  }
+  var sw=$('rndSw');
+  if(sw) sw.onclick=function(){ RD.block=!RD.block; sw.classList.toggle('on',RD.block); };
+  var sw2=$('rndSw2');
+  if(sw2) sw2.onclick=function(){
+    RD.avoid=!RD.avoid; sw2.classList.toggle('on',RD.avoid);
+    lss('kx_rndavoid',RD.avoid);
+    /* 关掉就把列表一起收起来，标题上也不留痕迹 */
+    rndSeenRender();
+  };
+  var go=$('rndGo');
+  if(go) go.onclick=rndPick;
+}
+
+function rndIsSeen(v){
+  var k=(v.name||'')+'|'+(v.year||'');
+  for(var i=0;i<RD.seen.length;i++){
+    if(((RD.seen[i].name||'')+'|'+(RD.seen[i].year||''))===k) return true;
+  }
+  return false;
+}
+/* 记一笔：同一个片名+年份只留一条，最多存 200 条（够回溯，也不至于把 localStorage 撑爆） */
+function rndMark(v){
+  if(rndIsSeen(v)) return;
+  RD.seen.push({name:v.name||'',year:v.year||'',score:(v.score==null?-1:v.score),pic:v.pic||''});
+  if(RD.seen.length>200) RD.seen=RD.seen.slice(RD.seen.length-200);
+  lss('kx_rndseen',RD.seen);
+  rndSeenRender();
+}
+/* 已抽列表：只在开关打开且确实抽过东西时出现 */
+function rndSeenRender(){
+  var w=$('rndSeenWrap'); if(!w) return;
+  if(!RD.avoid||!RD.seen.length){ w.innerHTML=''; return; }
+  var h='<div class="rndSeenBox"><div class="rndSeenHd"><span>已抽过 '+RD.seen.length+' 部</span>'
+    +'<span class="rndClr" id="rndClr">清空</span></div><div class="rndSeenList">';
+  for(var i=RD.seen.length-1;i>=0;i--){
+    var s=RD.seen[i];
+    h+='<div class="rndSeenRow" data-si="'+i+'">'
+      +'<b>'+esc(s.name)+'</b>'
+      +'<small>'+(s.year?esc(s.year):'')+(s.score>=0?' · '+s.score.toFixed(1)+' 分':'')+'</small>'
+      +'</div>';
+  }
+  h+='</div></div>';
+  w.innerHTML=h;
+  var clr=$('rndClr');
+  if(clr) clr.onclick=function(){
+    if(clr.getAttribute('data-ok')==='1'){ RD.seen=[]; lss('kx_rndseen',RD.seen); rndSeenRender(); return; }
+    clr.setAttribute('data-ok','1'); clr.textContent='再点一次清空';
+    setTimeout(function(){ try{ clr.removeAttribute('data-ok'); clr.textContent='清空' }catch(e){} },3000);
+  };
+  var rows=w.getElementsByClassName('rndSeenRow');
+  for(var k=0;k<rows.length;k++) rows[k].onclick=function(){
+    var i=+this.getAttribute('data-si'), s=RD.seen[i];
+    if(s&&s.name) openByName(s.name,s.year);
+  };
+}
+
+function rndPick(){
+  if(RD.busy) return;
+  var mi=$('rndMin'), st=$('rndStage');
+  if(!mi||!st) return;
+  if(!MIN_RE.test(mi.value)){
+    mi.classList.add('bad');
+    var hint=$('rndHint'); hint.classList.add('bad');
+    hint.textContent='分数格式不对：只能一位数字，可带一位小数';
+    return;
+  }
+  RD.min=mi.value;
+  var use=RD.block?mi.value:'0';
+  RD.busy=true;
+  var go=$('rndGo'); go.disabled=true;
+  st.innerHTML='<div class="rkEmpty">正在翻豆瓣…</div>';
+  var tries=0, MAX=8;
+  function stop(msg,cls){
+    st.innerHTML='<div class="rkEmpty">'+msg+'</div>';
+    RD.busy=false; go.disabled=false;
+    if(cls) bindClrAll();
+  }
+  function ask(){
+    api('/api/random?min='+encodeURIComponent(use)+'&type='+encodeURIComponent(RD.type),function(j){
+      if(!j){ stop('没连上本地服务，稍后再试'); return; }
+      var list=(j&&j.list)||[];
+      if(!list.length){
+        stop('这个条件下一篇都没翻到'+(RD.block?'<br>把分数降一点，或者关掉屏蔽试试':''));
+        return;
+      }
+      if(RD.avoid){
+        /* 一次接口只给 3 个候选，撞上抽过的就再要一批。最多 8 轮 ——
+           无限重试会把源站和豆瓣都拖死，8 轮全旧的就当抽完了。 */
+        var fresh=[];
+        for(var i=0;i<list.length;i++) if(!rndIsSeen(list[i])) fresh.push(list[i]);
+        if(!fresh.length){
+          if(++tries<MAX){ ask(); return; }
+          stop('符合条件的都被抽过了（共 '+RD.seen.length+' 部）<br>'
+              +'<span class="rndClr" id="rndClr2">清空已抽列表，重新开始</span>',true);
+          return;
+        }
+        list=fresh;
+      }
+      rollAnimate(list,function(){
+        RD.busy=false; go.disabled=false;
+        RD.last=list[0];
+        drawPick(list[0],true);
+        if(RD.avoid) rndMark(list[0]);
+      });
+    });
+  }
+  ask();
+}
+function bindClrAll(){
+  var c=$('rndClr2');
+  if(!c) return;
+  c.onclick=function(){
+    RD.seen=[]; lss('kx_rndseen',RD.seen); rndSeenRender();
+    var st=$('rndStage'); if(st) st.innerHTML='<div class="rkEmpty">已清空，可以重新抽了</div>';
+  };
+}
+
+/* 抽卡动画：2 秒，先快后慢。只用 transform/opacity，走 GPU 合成不重排 */
+function rollAnimate(list,done){
+  var st=$('rndStage');
+  st.innerHTML='<div class="rndPick rndRoll" id="rndRoll"></div>';
+  var box=$('rndRoll'), i=0, t0=Date.now(), DUR=2000;
+  function draw(){
+    var v=list[i%list.length];
+    box.innerHTML=(v.pic?'<img src="'+esc(picp(v.pic))+'">'
+                        :'<div style="width:104px;height:148px;border-radius:12px;background:#22354a"></div>')
+      +'<b>'+esc(v.name)+'</b><small>'+(v.score>=0?v.score.toFixed(1)+' 分':'')+'</small>';
+    i++;
+  }
+  draw();
+  function step(){
+    var el=Date.now()-t0;
+    if(el>=DUR){ done(); return; }
+    draw();
+    var p=el/DUR;
+    setTimeout(step,70+190*p*p);
+  }
+  setTimeout(step,70);
+}
+
+function drawPick(v){
+  var st=$('rndStage'); if(!st||!v) return;
+  st.innerHTML='<div class="rndPick">'
+    +(v.pic?'<img src="'+esc(picp(v.pic))+'">'
+           :'<div style="width:104px;height:148px;border-radius:12px;background:#22354a;margin:0 auto"></div>')
+    +'<b>'+esc(v.name)+'</b>'
+    +'<small>'+esc(v.year||'')+(v.score>=0?' · '+v.score.toFixed(1)+' 分':'')+'</small>'
+    +'<button class="rndSee" id="rndSee">找这部片 →</button>'
+    +'</div>';
+  var b=$('rndSee');
+  if(b) b.onclick=function(){ openByName(v.name,v.year); };
+}
+
+/* 页面内的点击（榜单条目 / 榜单切换 / 返回） */
+document.addEventListener('click',function(e){
+  var cl=e.target.closest('[data-close]');
+  if(cl){ pgClose(cl.getAttribute('data-close')); return; }
+  var chip=e.target.closest('.rkChip');
+  if(chip){ loadRank(chip.getAttribute('data-coll')); return; }
+  var row=e.target.closest('.rkRow');
+  if(row){
+    var i=+row.getAttribute('data-ri');
+    var v=RK.list[i];
+    if(v) openByName(v.name,v.year);
+  }
+});
+
+/* 投屏面板里的「悬浮遥控」 */
+(function(){
+  var b=document.getElementById('cpFloat');
+  if(!b) return;
+  b.addEventListener('click',function(){
+    try{
+      if(window.KX&&KX.castFloat) KX.castFloat();
+      else toast2('这版没有悬浮遥控');
+    }catch(err){}
+  });
+})();
+
+/* ============================================================
+   收藏 / 历史 页
+   ============================================================ */
+$('tab').addEventListener('click',function(e){
+  var t=e.target.closest('.tb'); if(!t) return;
+  var k=t.getAttribute('data-t');
+  pgCloseAll();
+  /* 只有影片库有搜索框；切走就把顶栏收窄，正文跟着上移 */
+  document.body.classList.toggle('home', k==='home');
+  relayoutSoon();
+  var cs=$('tab').children;
+  for(var i=0;i<cs.length;i++) cs[i].classList.toggle('on',cs[i]===t);
+  if(k==='home'){ $('hTitle').textContent='影片库'; S.mode='home'; S.done=false; S.busy=false; showHome(); loadList(true) }
+  else if(k==='fav') showFav();
+  else if(k==='hist') showHist();
+  else if(k==='dl') showDl();
+  else if(k==='rank') showRank();
+  else if(k==='rnd') showRnd();
+});
+/* 收藏/历史/下载这些页面写在 #pgbox 里，和影片库的 #grid 互斥显示。
+   以前这些页面直接 scroller.innerHTML=...，会把 #grid 节点一起销毁，
+   于是切回影片库时数据写进了已脱离文档的节点里 —— 界面上就是
+   「导航栏换了，页面还是上一个」。 */
+function showPage(){ try{ $('pgbox').style.display=''; $('grid').style.display='none';
+  $('more').style.display='none' }catch(e){} }
+function showHome(){ try{ $('pgbox').style.display='none'; $('pgbox').innerHTML='';
+  $('grid').style.display=''; $('more').style.display='' }catch(e){} }
+function showFav(){
+  S.mode='fav'; S.done=true;
+  $('hTitle').textContent='收藏';
+  showPage();
+  if(!S.fav.length){
+    $('grid').style.display='none';
+    $('pgbox').innerHTML='<div class="empty"><div class="big">★</div>还没有收藏<br>在详情页点「收藏」就存在这里</div>';
+    return;
+  }
+  var h='<div class="hlist">';
+  for(var i=0;i<S.fav.length;i++){
+    var v=S.fav[i];
+    h+='<div class="hrow" data-s="'+esc(v.src)+'" data-i="'+esc(v.id)+'">'
+      +(v.pic?'<img src="'+esc(picp(v.pic,v.ref))+'">':'<div style="width:52px;height:74px;border-radius:7px;background:#22354a;flex-shrink:0"></div>')
+      +'<div class="info"><b>'+esc(v.name)+'</b><small>'+esc(v.year||'')+(v.eps?' · '+v.eps+'集':'')+'</small></div></div>';
+  }
+  h+='</div>';
+  $('pgbox').innerHTML=h;
+  $('scroller')._mode='fav';
+}
+function showHist(){
+  showPage();
+  S.mode='hist'; S.done=true;
+  $('hTitle').textContent='观看历史';
+  if(!S.hist.length){
+    $('pgbox').innerHTML='<div class="empty"><div class="big">◷</div>还没有观看记录</div>';
+    return;
+  }
+  var h='<div class="hhead"><small>共 '+S.hist.length+' 条</small>'
+      +'<span class="clr" id="histClr">清空记录</span></div>';
+  h+='<div class="hlist">';
+  for(var i=0;i<S.hist.length;i++){
+    var v=S.hist[i];
+    var pct=v.dur>0?Math.min(100,v.t/v.dur*100):0;
+    h+='<div class="hrow" data-h="'+i+'">'
+      +(v.pic?'<img src="'+esc(picp(v.pic,v.ref))+'">':'<div style="width:52px;height:74px;border-radius:7px;background:#22354a;flex-shrink:0"></div>')
+      +'<div class="info"><b>'+esc(v.name)+'</b><small>'+esc(v.epName||'')+' · 看到 '+fmt(v.t)+(v.dur?' / '+fmt(v.dur):'')+'</small>'
+      +'<div class="pg"><i style="width:'+pct+'%"></i></div></div>'
+      +'<span class="del" data-dh="'+i+'">×</span></div>';
+  }
+  h+='</div>';
+  $('pgbox').innerHTML=h;
+  $('scroller')._mode='hist';
+}
+$('scroller').addEventListener('click',function(e){
+  // 榜单/随机页自己处理点击（条目是 .card 不是 .hrow，旧分支会误判）
+  if(S.mode==='rank'||S.mode==='rnd'){ rrClick(e); return; }
+  // 观看历史：单条删除
+  var dx=e.target.closest('.del');
+  if(dx && dx.hasAttribute('data-dh')){
+    e.stopPropagation();
+    var di=+dx.getAttribute('data-dh');
+    S.hist.splice(di,1);
+    lss('kx_hist',S.hist);
+    showHist();
+    return;
+  }
+  // 观看历史：清空（同样点两下）
+  var hc=e.target.closest('#histClr');
+  if(hc){
+    e.stopPropagation();
+    if(hc.getAttribute('data-armed')==='1'){
+      S.hist=[]; lss('kx_hist',S.hist); showHist();
+      tip('观看记录已清空',1600);
+    }else{
+      hc.setAttribute('data-armed','1');
+      hc.textContent='再点一次清空';
+      hc.classList.add('warn');
+    }
+    return;
+  }
+  var r=e.target.closest('.hrow'); if(!r) return;
+  if(S.mode==='hist'){
+    var i=+r.getAttribute('data-h'); var h=S.hist[i];
+    if(!h) return;
+    resumeFrom(h);
+  }else if(S.mode==='fav'){
+    var src=r.getAttribute('data-s'), id=r.getAttribute('data-i');
+    var v=null;
+    for(var k=0;k<S.fav.length;k++) if(S.fav[k].src===src&&S.fav[k].id===id) v=S.fav[k];
+    if(!v) return;
+    openDetail(v);
+  }
+});
+/** 从历史记录直接开播：省一次搜索，直接用缓存的 src+id 拉选集 */
+function resumeFrom(h){
+  S.d={src:h.src,id:h.id,name:h.name,pic:h.pic,eps:0,lines:[]};
+  $('dName').textContent=h.name||'—';
+  var _hp=picp(h.pic); $('dPic').src=_hp; $('dBg').style.backgroundImage=_hp?('url("'+_hp+'")'):'none';
+  $('dTags').innerHTML=''; $('dDesc').textContent='';
+  $('dLines').innerHTML=''; $('dEps').innerHTML='';
+  $('detail').classList.add('show','in');
+  api('/api/play?src='+encodeURIComponent(h.src)+'&id='+encodeURIComponent(h.id)+'&line=0',function(j){
+    if(!j||!j.eps){ $('dEps').innerHTML='<div class="empty" style="grid-column:1/-1">这条片子已失效</div>'; return }
+    S.eps=j.eps;
+    var lh='<div class="lchip on">'+esc(j.lineName||'线路1')+' ·'+j.eps.length+'集</div>';
+    $('dLines').innerHTML=lh;
+    $('dEpT').textContent='选集（'+j.eps.length+' 集）';
+    var g='';
+    for(var i=0;i<j.eps.length;i++) g+='<div class="ep'+(i===h.ep?' cur':'')+'" data-e="'+i+'">'+esc(j.eps[i].name)+'</div>';
+    $('dEps').innerHTML=g;
+    $('dPlay').textContent='▶ 继续看 '+(h.epName||'');
+    // 直接开播
+    setTimeout(function(){ playAt(h.ep) },120);
+  });
+}
+
+/* ============================================================
+   返回键（原生调用）
+   ============================================================ */
+window.__back=function(){
+  /* 层级从最上面那层开始退：遥控面板 > 选集抽屉 > 播放页 > 详情页 > 首页 */
+  var cp=document.getElementById('castPanel');
+  if(cp&&cp.classList.contains('on')){ cpClose2(); return true }
+  if($('epDrawer').classList.contains('on')){ closeEpDrawer(); return true }
+  if($('pv').classList.contains('show')){ exitPlay(); return true }
+  var d=$('detail');
+  if(d.classList.contains('show')){
+    d.classList.remove('show','in');
+    return true;
+  }
+  /* 榜单 / 随便看 / 设置这些是盖在首页上的独立页，先关掉它们。
+     关掉的同时必须把 mode 和底部导航归位 —— 只关页面不归位的话，界面已经
+     回到首页、S.mode 还是 'rank'，再按一次返回才走 mode 分支，用户会觉得
+     「按一下没反应」。 */
+  var pgs=['pageSet','pageRank','pageRnd'];
+  for(var pi=0;pi<pgs.length;pi++){
+    var pe=$(pgs[pi]);
+    if(pe&&pe.classList.contains('show')){
+      pgClose(pgs[pi]);
+      if(S.mode&&S.mode!=='home'){ S.mode='home'; S.done=false; S.busy=false; resetHomeTab() }
+      return true;
+    }
+  }
+  if(S.mode==='dl'){ clearTimeout(dlTimer); }
+  if(S.mode&&S.mode!=='home'){
+    S.mode='home'; S.done=false; S.busy=false; showHome();
+    var cs=$('tab').children;
+    for(var i=0;i<cs.length;i++) cs[i].classList.toggle('on',i===0);
+    $('hTitle').textContent='影片库';
+    loadList(true);
+    return true;
+  }
+  return false;
+};
+
+/* ============================================================
+   返回键的最终兜底：无论当前停在哪一页，都能退回主界面。
+   原生那边只有在 window.__goHome() 也返回 false（= 已经在主界面）
+   时才把任务丢到后台，所以按多少次返回都不会退出程序。
+   ============================================================ */
+/** 把底部导航、标题、正文都切回「影片库」。 */
+function resetHomeTab(){
+  var cs=$('tab').children;
+  for(var i=0;i<cs.length;i++) cs[i].classList.toggle('on',i===0);
+  document.body.classList.add('home');
+  relayoutSoon();
+  $('hTitle').textContent='影片库';
+  showHome();
+}
+
+window.__goHome=function(){
+  try{
+    var i,any=false;
+    var pgs=['pageSet','pageRank','pageRnd'];
+    for(i=0;i<pgs.length;i++){
+      var pe=$(pgs[i]);
+      if(pe&&pe.classList.contains('show')){ pgClose(pgs[i]); any=true }
+    }
+    var d=$('detail');
+    if(d&&d.classList.contains('show')){ d.classList.remove('show','in'); any=true }
+    var pv=$('pv');
+    if(pv&&pv.classList.contains('show')){ try{ exitPlay(); any=true }catch(e2){} }
+    var cp=document.getElementById('castPanel');
+    if(cp&&cp.classList.contains('on')){ try{ cpClose2(); any=true }catch(e3){} }
+    var ed=$('epDrawer');
+    if(ed&&ed.classList.contains('on')){ try{ closeEpDrawer(); any=true }catch(e4){} }
+    if(S.mode&&S.mode!=='home'){
+      S.mode='home'; S.done=false; S.busy=false; showHome();
+      var cs=$('tab').children;
+      for(i=0;i<cs.length;i++) cs[i].classList.toggle('on',i===0);
+      document.body.classList.add('home');
+      relayoutSoon();
+      $('hTitle').textContent='影片库';
+      loadList(true);
+      any=true;
+    }
+    return any;   /* false = 已经在主界面 */
+  }catch(e){ return false }
+};
+
+/* ---------- 启动 ---------- */
+layoutBars();
+relayoutSoon();
+window.addEventListener('resize',relayoutSoon);
+window.addEventListener('orientationchange',function(){setTimeout(relayoutSoon,260)});
+if(window.visualViewport){window.visualViewport.addEventListener('resize',relayoutSoon)}
+loadCats();
+/* ---------- 投屏 ---------- */
+window.__castList=function(list){
+  var h='';
+  if(!list||!list.length){
+    h='<div class="empty" style="padding:26px 10px">没找到可投屏的设备<br><small style="color:#5d6b76">确认手机和电视连同一个 WiFi</small></div>';
+  }else{
+    for(var i=0;i<list.length;i++){
+      h+='<div class="hrow" style="margin-bottom:6px" data-cast="'+list[i].i+'">'
+        +'<div style="width:34px;height:34px;border-radius:9px;background:rgba(102,192,244,.14);'
+        +'display:flex;align-items:center;justify-content:center;color:#66C0F4;font-size:15px">📺</div>'
+        +'<div class="info"><b>'+esc(list[i].name)+'</b></div></div>';
+    }
+  }
+  $('epGrid2').innerHTML='<div style="grid-column:1/-1">'+h+'</div>';
+  $('epTitle').textContent='投屏到…';
+  $('epDrawer').classList.add('on'); $('epMask').classList.add('on');
+  CASTLIST=list||[];
+};
+var CAST={on:false,i:-1,name:'',drag:0,volDrag:0};
+window.__castOk=function(msg){
+  tip(msg,2000); closeEpDrawer();
+  CAST.on=true;
+  $('castPill').classList.add('on');
+  // 投屏后本地必须停：不停就是两头同时出声，而且白白跑流量
+  try{ vid.pause() }catch(e){}
+  try{ nat('castState') }catch(e){}
+  /* 把本地量到的时长推给原生：有些电视 GetPositionInfo 的 TrackDuration 一直是
+     00:00:00，遥控就永远不知道总长、进度条拖不动。投的是同一份清单，时长一样。 */
+  (function pushDur(times){
+    var iv=setInterval(function(){
+      var d=0;
+      try{ d=(vid&&isFinite(vid.duration))?vid.duration:0 }catch(e){}
+      if(!d || d<1){ try{ d=(S.p&&S.p.dur)||0 }catch(e2){} }
+      if(d>1){ try{ nat('castSetDur', String(Math.round(d))) }catch(e3){} clearInterval(iv); return }
+      if(--times<=0) clearInterval(iv);
+    },400);
+  })(8);
+  setTimeout(function(){ if(!$('castPanel').classList.contains('on')) cpOpen() },360);
+};
+window.__castErr=function(msg){ tip(msg,2600) };
+
+/* 投屏模式：默认 HLS（能拖进度）。老电视不认 m3u8 时勾兼容模式，
+   服务端把整集分片拼成一条 MPEG-TS 流推过去，代价是不能拖。 */
+function castMode(){ return ls('kx_castcompat',0)?'ts':'hls' }
+(function(){
+  var c=document.getElementById('cpCompat'); if(!c) return;
+  c.checked = !!ls('kx_castcompat',0);
+  c.addEventListener('change',function(){
+    lss('kx_castcompat', this.checked?1:0);
+    tip(this.checked?'已切到兼容模式，重新点一次投屏生效':'已切回高清（HLS）模式，重新点一次投屏生效',2400);
+  });
+})();
+
+/* 悬浮遥控窗的「上一集/下一集」：Java 只有 taskId/地址，选集列表在页面这边。
+   投屏中换集＝直接在电视上换，本地不播。 */
+window.__castEpStep=function(d){
+  if(!CAST.on) return;
+  var n=(S.p.i||0)+d;
+  if(!S.p.eps||!S.p.eps.length){ tip('选集还没加载'); return }
+  if(n<0||n>=S.p.eps.length){ tip(d>0?'已经是最后一集':'已经是第一集',1600); return }
+  playAt(n);
+};
+var CASTLIST=[];
+$('bCast').addEventListener('click',function(){
+  if(CAST.on){ cpOpen(); return }
+  if(!KX||!KX.castDiscover){ tip('这个版本不支持投屏'); return }
+  tip('正在搜索设备…',1800);
+  nat('castDiscover');
+});
+$('epGrid2').addEventListener('click',function(e){
+  var t=e.target.closest('[data-cast]'); if(!t) return;
+  var i=+t.getAttribute('data-cast');
+  CAST.i=i;
+  closeEpDrawer();
+  tip('正在连接电视…');
+  if(S.p.offlineId){
+    nat('castPlay', i, S.p.offlineId);
+  }else{
+    var ep=S.p.eps&&S.p.eps[S.p.i];
+    if(!ep){ tip('还没开始播放，先点某一集'); return }
+    var tv=S.p.vod||{};
+    var tt=(tv.name||'')+' '+(ep.name||'');
+    nat('castPlayAt', i, tv.src, tv.id, (S.p.line||0), (S.p.i||0), castMode(), tt);
+  }
+});
+
+/* ============================================================
+   投屏遥控
+   状态来源：原生每 2 秒读一次电视的 GetPositionInfo / GetVolume，
+   通过 window.__castState 推过来。页面不主动堵塞发请求。
+   ============================================================ */
+function fmtT(x){
+  x=Math.max(0,Math.floor(x||0));
+  var m=Math.floor(x/60),h=Math.floor(m/60); m=m%60;
+  var p=function(n){return (n<10?'0':'')+n};
+  return (h>0?(h+':'+p(m)):(''+m))+':'+p(x%60);
+}
+/* 心跳之间按本地时间把光标往前推，1 秒一次的心跳也能看出在走 */
+setInterval(function(){
+  if(!CAST.on || !(CAST.dur>0) || CAST.drag || CAST.off) return;
+  if(!CAST.playing || !(CAST.baseAt>0)) return;
+  var t=CAST.base+(Date.now()-CAST.baseAt)/1000;
+  if(t<0) t=0; if(t>CAST.dur) t=CAST.dur;
+  $('cpSeek').value=Math.round(t/CAST.dur*1000);
+  $('cpCur').textContent=fmtT(t);
+},250);
+
+function cpOpen(){ $('castPanel').classList.add('on'); $('castMask').classList.add('on') }
+function cpClose2(){ $('castPanel').classList.remove('on'); $('castMask').classList.remove('on') }
+window.__castOff=function(){
+  CAST.on=false; CAST.i=-1; CAST.name='';
+  $('castPill').classList.remove('on');
+  cpClose2();
+  tip('已停止投屏',1800);
+};
+window.__castState=function(o){
+  if(!o) return;
+  if(!o.on) return;
+  CAST.name=o.name||'';
+  if(o.name){ $('cpDev').textContent='投到 '+o.name; $('castPillT').textContent=o.name }
+  else { $('cpDev').textContent='正在投屏'; $('castPillT').textContent='投屏中' }
+  /* 心跳：原生每秒问一次电视「你在哪」。连续 3 次没回应就标掉线，
+     不然用户只会觉得遥控坏了、进度也不动，但界面上一点提示都没有。 */
+  if(o.online===false){
+    if(!CAST.off){ CAST.off=1; $('cpDev').textContent='电视没有回应（心跳中断）'; }
+  }else if(CAST.off){
+    CAST.off=0;
+    $('cpDev').textContent=(o.name?'投到 '+o.name:'正在投屏');
+  }
+  CAST.dur=o.dur||0;
+  $('cpToggle').textContent=o.playing?'⏸':'▶';
+  if(o.dur>0){
+    $('cpDur').textContent=fmtT(o.dur);
+    if(!CAST.drag){
+      var v=Math.round(Math.max(0,Math.min(o.pos,o.dur))/o.dur*1000);
+      $('cpSeek').value=v;
+      $('cpCur').textContent=fmtT(o.pos);
+      /* 记下这一拍，之后 1 秒内本地插值（心跳 1s，界面看起来是连续的） */
+      CAST.base=o.pos; CAST.baseAt=Date.now(); CAST.playing=!!o.playing;
+    }
+  }else if(o.pos>=0){
+    $('cpCur').textContent=fmtT(o.pos);
+  }
+  if(o.vol>=0 && !CAST.volDrag){
+    $('cpVol').value=o.vol; $('cpVolN').textContent=o.vol;
+  }
+};
+$('cpClose').addEventListener('click',cpClose2);
+$('castMask').addEventListener('click',cpClose2);
+$('castPill').addEventListener('click',function(){ cpOpen() });
+$('cpStop').addEventListener('click',function(){
+  cpClose2();
+  nat('castCtl','stop','0');
+});
+$('cpEps').addEventListener('click',function(){
+  if(!S.p.eps||!S.p.eps.length){ tip('选集还没加载'); return }
+  cpClose2();
+  DLMODE=0;
+  var h='';
+  for(var i=0;i<S.p.eps.length;i++){
+    h+='<div class="ep'+(i===S.p.i?' cur':'')+'" data-e="'+i+'">'+esc(S.p.eps[i].name)+'</div>';
+  }
+  $('epGrid2').innerHTML=h;
+  $('epTitle').textContent='投到电视 · 选集';
+  $('epDrawer').classList.add('on'); $('epMask').classList.add('on');
+});
+/* 拖动进度：松开才发，拖的时候只更新数字 */
+$('cpSeek').addEventListener('input',function(){
+  CAST.drag=1;
+  if(CAST.dur>0) $('cpCur').textContent=fmtT(this.value/1000*CAST.dur);
+});
+$('cpSeek').addEventListener('change',function(){
+  CAST.drag=0;
+  if(!(CAST.dur>0)){ tip('电视还没告诉总时长，稍等一下'); return }
+  var t=Math.round(this.value/1000*CAST.dur);
+  nat('castCtl','seek',String(t));
+});
+/* 音量：拖动节流 180ms */
+var volT=0;
+$('cpVol').addEventListener('input',function(){
+  CAST.volDrag=1;
+  $('cpVolN').textContent=this.value;
+  var v=+this.value;
+  clearTimeout(volT);
+  volT=setTimeout(function(){ nat('castCtl','volume',String(v)) },180);
+});
+$('cpVol').addEventListener('change',function(){
+  CAST.volDrag=0;
+  nat('castCtl','volume',String(+this.value));
+});
+/* 快退/快进/暂停 */
+var cpRow=document.querySelector('#castPanel .cpRow');
+if(cpRow) cpRow.addEventListener('click',function(e){
+  var b=e.target.closest('[data-op]'); if(!b) return;
+  var op=b.getAttribute('data-op'), v=b.getAttribute('data-v')||'0';
+  if(op==='toggle'){ nat('castCtl','toggle','0'); }
+  else { nat('castCtl',op,v); }
+});
+
+</script>
+</body>
+</html>

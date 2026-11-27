@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  调试用无障碍服务的声明。
+
+  description 是用户在系统设置里看到的说明，必须写清楚"这只是给开发者调试用的"，
+  否则一个影视 App 申请无障碍权限，用户会以为是偷数据。
+  canRetrieveWindowContent 打开才能在 App 自己打开时读到界面。
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeAllMask"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows|flagIncludeNotImportantViews|flagRequestEnhancedWebAccessibility"
+    android:canRetrieveWindowContent="true"
+    android:canPerformGestures="true"
+    android:notificationTimeout="60"
+    android:description="@string/a11y_desc"
+    android:summary="@string/a11y_sum" />
